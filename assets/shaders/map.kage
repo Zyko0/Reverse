@@ -1,0 +1,25 @@
+package main
+
+const (
+	Pi    = 3.1415925359
+	TwoPi = 6.2831852
+)
+
+func hash(p vec2, seed float) float {
+	return fract(sin(dot(p, vec2(12.9898, 4.1414)*seed)) * 43758.5453)
+}
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	uv := texCoord*2. - 1.
+
+	v := abs(length(uv) - 1)
+	//v = min(v, 0.1)
+	return vec4(v, 0, 0, 1)
+	out := vec3(
+		hash(uv, 0.5), // Height
+		0.,            // Idk
+		0.,            // Idk
+	)
+
+	return vec4(out, 1)
+}

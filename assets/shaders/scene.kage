@@ -1,0 +1,269 @@
+package main
+
+const (
+	Pi        = 3.1415925359
+	TwoPi     = 2 * Pi
+	Sqrt2     = 1.41421568
+	Precision = 0.0001
+	// Lights
+	MinShadow = 0.2
+)
+
+func hash(p vec2, seed float) float {
+	return fract(sin(dot(p, vec2(12.9898, 4.1414)*seed)) * 43758.5453)
+}
+
+func noZeroSign(v float) float {
+	return sign(sign(v) + 0.5)
+}
+
+func rotate2D(v vec2, a float) vec2 {
+	s := sin(a)
+	c := cos(a)
+	m := mat2(c, -s, s, c)
+	return m * v
+}
+
+// Rotation matrix around the X axis
+func rotateX(a float) mat3 {
+	c := cos(a)
+	s := sin(a)
+	return mat3(
+		vec3(1., 0., 0.),
+		vec3(0., c, -s),
+		vec3(0., s, c),
+	)
+}
+
+// Rotation matrix around the Y axis
+func rotateY(a float) mat3 {
+	c := cos(a)
+	s := sin(a)
+	return mat3(
+		vec3(c, 0., s),
+		vec3(0., 1., 0.),
+		vec3(-s, 0., c),
+	)
+}
+
+// Rotation matrix around the Z axis
+func rotateZ(a float) mat3 {
+	c := cos(a)
+	s := sin(a)
+	return mat3(
+		vec3(c, -s, 0.),
+		vec3(s, c, 0.),
+		vec3(0., 0., 1.),
+	)
+}
+
+func insideWorldBox(p vec3) bool {
+	block := floor(p)
+	oow := step(abs(block.x), MapSize.x/2)
+	oow *= step(0, p.y)
+	oow *= step(p.y, MapSize.y)
+	oow *= step(abs(block.z), MapSize.z/2)
+
+	return oow > 0
+}
+
+func texture(p, normal vec3, k float) vec3 {
+	x := vec3(0.5) * hash(floor(p.yz*8.), 1)
+	y := vec3(0, 1, 0) * hash(floor(p.zx*8.), 1)
+	z := vec3(0.5) * hash(floor(p.xy*8.), 1)
+	// and blend
+	m := pow(abs(normal), vec3(k))
+	return (x*m.x + y*m.y + z*m.z) / (m.x + m.y + m.z)
+}
+
+// Source: https://www.shadertoy.com/view/4sKcWt
+
+func voxel(p vec3) vec4 {
+	if !insideWorldBox(p) {
+		return vec4(0)
+	}
+
+	voxel := floor(p)
+	uv := (voxel.xz + MapSize.xz/2) / (MapSize.xz)
+	origin, size := imageSrcRegionOnTexture()
+	data := imageSrc0UnsafeAt(uv*size + origin)
+	height := data.r
+	height = floor(height*255 + 0.5)
+	hl := 1. - step(height, voxel.y)
+
+	return vec4(data.rgb, hl)
+}
+
+func sdBox(p, b vec3) float {
+	q := abs(p) - b
+	return length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0)
+}
+
+func sdBox2D(p, b vec2) float {
+	d := abs(p) - b
+	return length(max(d, 0.0)) + min(max(d.x, d.y), 0.0)
+}
+
+func sdVoxel(p, rd vec3) float {
+	oow := step(0, p.y) // TODO: idk
+
+	f := fract(p)
+	d := step(0., rd)
+	d1 := dot((d-f), vec3(0, 1, 0)) / dot(rd, vec3(0, 1, 0))
+	d2 := dot((d-f), vec3(1, 0, 0)) / dot(rd, vec3(1, 0, 0))
+	d3 := dot((d-f), vec3(0, 0, -1)) / dot(rd, vec3(0, 0, -1))
+
+	return max(min(d1, min(d2, d3)), 0.0001) * oow
+}
+
+func sdScene(p, rd vec3) float {
+	d := sdVoxel(p, rd)
+
+	return d
+}
+
+func phong(ldir, normal, clr, specular vec3, glossiness float) vec3 {
+	// ambient
+	ambientStrength := 0.1 //0.5
+	ambient := ambientStrength * vec3(1)
+
+	// diffuse
+	norm := normal
+	diff := max(dot(norm, ldir), 0.)
+	diffuse := diff * clr
+
+	// specular
+	hwdir := normalize(ldir + normal)
+	specular = specular * pow(max(dot(normal, hwdir), 0.), glossiness)
+
+	return ambient + diffuse + 0*specular
+}
+
+func softShadow(ro, rd vec3) float {
+	const maxt = 3
+
+	t := 0.01
+	// TODO: do it with same method as rayMarch
+	for i := 0; i < 8; i++ {
+		p := ro + rd*t
+		if t > maxt || voxel(p).w > .5 {
+			break
+		}
+
+		t += sdScene(p, rd)
+	}
+
+	t = clamp(1-t/maxt, 0., 1)
+	t = 1 - clamp(t, 0., 1-MinShadow)
+	return t * t * (3.0 - 2.0*t)
+}
+
+func rayMarch(ro, rd vec3) (vec4, vec4) {
+	const (
+		MaxSteps = 1024.
+	)
+
+	maxi := max(MapSize.x, MapSize.y) * 3.
+	p := floor(ro)
+	ri := 1. / rd
+	rs := sign(rd)
+	dis := (p - ro + 0.5 + rs*0.5) * ri
+	res := -1.
+	mm := vec3(0)
+	vox := vec4(0)
+	for i := 0.; i < MaxSteps; i++ {
+		// If outside world bounding box
+		if !insideWorldBox(p / 2) {
+			break
+		}
+		
+		vox = voxel(p)
+		if vox.w > 0.5 || i > maxi {
+			res = 1.
+			break
+		}
+		mm = step(dis.xyz, dis.yzx) * step(dis.xyz, dis.zxy)
+		dis += (mm * rs * ri)
+		p += (mm * rs)
+	}
+
+	// intersect the cube
+	mini := (p - ro + 0.5 - 0.5001*vec3(rs)) * ri // with a tiny bias so the shadows dont glitch out
+	t := max(mini.x, max(mini.y, mini.z)) * res
+
+	return vec4(t, -mm*rs), voxel
+}
+
+var Offset vec3
+var HorizontalAngle float
+var MapSize vec3
+var Zoom float
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	const ratio = 16. / 9.
+
+	origin, size := imageSrcRegionOnTexture()
+	uv := (texCoord-origin)/size*2 - 1
+	uv *= (MapSize.xz)
+	uv /= Zoom
+	uv.y /= ratio
+	// Hack: 0 angle displays nothing
+	ha := noZeroSign(HorizontalAngle) * max(abs(HorizontalAngle), 0.001)
+	// Note: need to revert offset z, idk why
+	off := Offset.xyz * vec3(1, 1, -1)
+	// Ray origin
+	ro := vec3(uv.x, MapSize.y-1, uv.y+MapSize.y-1)
+	ro.xz = rotate2D(ro.xz, ha)
+	ro += off
+	// Ray direction
+	rd := normalize(vec3(0, -1, -1))
+	rd.xz = rotate2D(rd.xz, ha)
+	// Close the gap with the world bounding box
+	wb := MapSize * vec3(0.501, 1.001, 0.501)
+	boxoff := vec3(0, -MapSize.y, 0) //-MapSize.y)
+	//boxoff.xz = rotate2D(boxoff.xz, ha)
+	dbox := sdBox(ro+boxoff, wb)
+	ro += rd * (dbox * Sqrt2)
+	// Distance calculation
+	res, vox := rayMarch(ro, rd)
+	_ = vox
+	d, normal := res.x, res.yzw
+	//return vec4(vec3(abs(d)/64), 1)
+	p := ro + rd*d
+	// If still outside world box
+	if sdBox(p+boxoff, wb) > 0 || d < 0 {
+		// TODO: Star field?
+		discard()
+		return
+	}
+	// Player billboard
+	ddp := length(ro - (off + vec3(0, 0.5, 0)))
+	if dp := length(vec3(uv.x, 0, uv.y)) - 0.5; dp < 0 {
+		if d < ddp && d > 0 {
+			return vec4(vec3(0), 1)
+		} else {
+			return vec4(1)
+		}
+	}
+
+	// Texture color calculation TODO: tbd
+	diffuse := texture(p, normal, 1) // vec3(0.5, 0, 1) //
+	//return vec4(diffuse, 1.)         // TODO: texture debug
+	specular := 0.1
+	glossiness := 16.
+	// Lights calculation
+	lightpos := vec3(0, 1.25, -0.5) * MapSize.x
+	lightdir := normalize(lightpos - p)
+	//return vec4(abs(lightdir), 1.)
+	lightclr := vec3(1)
+	lightint := 1.
+	spec := lightclr * specular
+	clr := lightclr * phong(
+		lightdir, normal.xyz, diffuse.rgb, spec, glossiness,
+	) * lightint
+	// Shadows
+	shadow := clamp(dot(normal, lightdir), MinShadow*2, 1.)
+	clr *= shadow * softShadow(p, lightdir)
+
+	return vec4(clr, 1)
+}
