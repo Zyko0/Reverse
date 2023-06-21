@@ -1,0 +1,106 @@
+package main
+
+const (
+	Pi    = 3.1415925359
+	TwoPi = Pi * 2
+)
+
+func colorize(t, seed float) vec3 {
+	return vec3(.6 + .6*cos(TwoPi*t+seed*vec3(0, 20, 10)))
+}
+
+func hash(p vec2, seed float) float {
+	return fract(sin(dot(p, vec2(12.9898, 4.1414)*seed)) * 43758.5453)
+}
+
+
+var Time float
+
+func sdSeg(p, a, b vec2) float {
+	ba := b - a
+	pa := p - a
+	h := clamp(dot(pa, ba)/dot(ba, ba), 0, 1)
+
+	return length(pa - h*ba)
+}
+
+func sdBox(p, b vec2) float {
+	d := abs(p) - b
+
+	return length(max(d, 0)) + min(max(d.x, d.y), 0)
+}
+
+func sdCircle(p vec2, r float) float {
+	return length(p) - r
+}
+
+func sdChar(p vec2, front float) vec4 {
+	// State animations
+	clrc := 1. - step(front, 0.)*0.5
+	movement := Running + Walking*0.25
+	tmovement := Running*12 + Walking*6
+	offy := (0.05 - sin(Time*4)*0.05) * Idle
+	offy += (0.05 - sin(Time*tmovement)*0.05) * movement
+	jumpoffy := Jumping * 0.35
+	p.y += offy
+	//p.y -= 0.05
+
+	// Eyes blinking
+	blink := mod(Time*12, 28)
+	blink = 0.85 * step(blink, 2) * (1 + sin(blink*Pi/2))
+	// Eyes
+	d := sdCircle((p+vec2(-0.075, 0.4))/vec2(1, 2-blink), 0.1)
+	d = min(d, sdCircle((p+vec2(-0.325, 0.4))/vec2(1, 2-blink), 0.1))
+	d *= step(0, front)
+	if d < 0 {
+		return vec4(vec3(0), d)
+	}
+	// Head
+	d = sdBox(p+vec2(0, 0.45), vec2(0.2, 0.1)) - 0.25
+	if d < 0 {
+		return vec4(vec3(1)*clrc, d)
+	}
+
+	const stickWidth = 0.05
+	llo := sin(Time*tmovement) * 0.15 * movement
+	rlo := sin(Pi/2+Time*tmovement) * 0.15 * movement
+
+	// Body trunc
+	d = sdSeg(p, vec2(0, -0.45), vec2(0, 0.35)) - stickWidth
+	// Arms
+	// Left
+	d = min(d, sdSeg(p, vec2(0), vec2(-0.2, 0.15))-stickWidth)
+	d = min(d, sdSeg(p, vec2(-0.2, 0.15), vec2(-0.25, 0.3+rlo*0.5-jumpoffy))-stickWidth)
+	// Right
+	d = min(d, sdSeg(p, vec2(0, 0), vec2(0.2, 0.15))-stickWidth)
+	d = min(d, sdSeg(p, vec2(0.2, 0.15), vec2(0.25, 0.3+llo*0.5-jumpoffy))-stickWidth)
+	// Legs
+	d = min(d, sdSeg(p, vec2(0, 0.35), vec2((-0.2+llo), 0.6+llo-jumpoffy))-stickWidth)
+	d = min(d, sdSeg(p, vec2((-0.2+llo), 0.6+llo-jumpoffy), vec2((-0.25+llo), 0.9+llo*0.5-jumpoffy))-stickWidth)
+	// Right
+	d = min(d, sdSeg(p, vec2(0, 0.35), vec2((0.2-rlo), 0.6+rlo-jumpoffy))-stickWidth)
+	d = min(d, sdSeg(p, vec2((0.2-rlo), 0.6+rlo-jumpoffy), vec2((0.25-rlo), 0.9+rlo*0.5-jumpoffy))-stickWidth)
+	if d < 0 {
+		return vec4(vec3(1)*clrc, d)
+	}
+
+	return vec4(0)
+}
+
+var Idle float
+var Walking float
+var Running float
+var Jumping float
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	uv := texCoord*2 - 1
+
+	res := sdChar(uv, color.r)
+	if res.w > 0 {
+		discard()
+		return
+		//return vec4(0, 0, 0, 1)
+	}
+
+	return vec4(res.rgb, 1.)
+}
