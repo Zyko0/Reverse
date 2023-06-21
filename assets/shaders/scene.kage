@@ -77,18 +77,18 @@ func texture(p, normal vec3, k float) vec3 {
 }
 
 // Source: https://www.shadertoy.com/view/4sKcWt
-
 func voxel(p vec3) vec4 {
 	if !insideWorldBox(p) {
 		return vec4(0)
 	}
 
-	voxel := floor(p)
+	voxel := floor(p + vec3(0, 0, 0))
 	uv := (voxel.xz + MapSize.xz/2) / (MapSize.xz)
+	uv.y = 1 - uv.y
 	origin, size := imageSrcRegionOnTexture()
 	data := imageSrc0UnsafeAt(uv*size + origin)
 	height := data.r
-	height = floor(height*255 + 0.5)
+	height = floor(height*MapSize.y + 0.5)
 	hl := 1. - step(height, voxel.y)
 
 	return vec4(data.rgb, hl)
@@ -99,9 +99,27 @@ func sdBox(p, b vec3) float {
 	return length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0)
 }
 
-func sdBox2D(p, b vec2) float {
-	d := abs(p) - b
-	return length(max(d, 0.0)) + min(max(d.x, d.y), 0.0)
+// https://iquilezles.org/articles/boxfunctions
+// MIT: https://www.shadertoy.com/view/ld23DV
+func iBox(ro, rd, bb vec3) vec4 {
+	m := 1. / rd
+	n := m * ro
+	k := abs(m) * bb
+	t1 := -n - k
+	t2 := -n + k
+
+	tN := max(max(t1.x, t1.y), t1.z)
+	tF := min(min(t2.x, t2.y), t2.z)
+
+	if tN > tF || tF < 0 {
+		return vec4(-1)
+	}
+
+	res := vec4(tN, step(tN, t1))
+
+	res.yzw = (vec4(-sign(rd)*res.yzw, 0)).xyz
+
+	return res
 }
 
 func sdVoxel(p, rd vec3) float {
@@ -120,6 +138,77 @@ func sdScene(p, rd vec3) float {
 	d := sdVoxel(p, rd)
 
 	return d
+}
+
+func sdSeg(p, a, b vec2) float {
+	ba := b - a
+	pa := p - a
+	h := clamp(dot(pa, ba)/dot(ba, ba), 0, 1)
+
+	return length(pa - h*ba)
+}
+
+func sdBox2D(p, b vec2) float {
+	d := abs(p) - b
+
+	return length(max(d, 0)) + min(max(d.x, d.y), 0)
+}
+
+func sdCircle(p vec2, r float) float {
+	return length(p) - r
+}
+
+func sdChar(p vec2, front, run, walk, idle, jump float) vec4 {
+	// State animations
+	clrc := 1. - step(front, 0.)*0.5
+	movement := run + walk*0.5
+	tmovement := run*12 + walk*6
+	offy := (0.05 - sin(Time*4)*0.05) * idle
+	offy += (0.05 - sin(Time*tmovement)*0.05) * movement
+	jumpoffy := jump * 0.35
+	p.y += offy
+	//p.y -= 0.05
+
+	// Eyes blinking
+	blink := mod(Time*12, 28)
+	blink = 0.85 * step(blink, 2) * (1 + sin(blink*Pi/2))
+	// Eyes
+	d := sdCircle((p+vec2(-0.075, 0.4))/vec2(1, 2-blink), 0.1)
+	d = min(d, sdCircle((p+vec2(-0.325, 0.4))/vec2(1, 2-blink), 0.1))
+	d *= step(0, front)
+	if d < 0 {
+		return vec4(vec3(0), d)
+	}
+	// Head
+	d = sdBox2D(p+vec2(0, 0.45), vec2(0.2, 0.1)) - 0.25
+	if d < 0 {
+		return vec4(vec3(1)*clrc, d)
+	}
+
+	const stickWidth = 0.05
+	llo := sin(Time*tmovement) * 0.15 * movement
+	rlo := sin(Pi/2+Time*tmovement) * 0.15 * movement
+
+	// Body trunc
+	d = sdSeg(p, vec2(0, -0.45), vec2(0, 0.35)) - stickWidth
+	// Arms
+	// Left
+	d = min(d, sdSeg(p, vec2(0), vec2(-0.2, 0.15))-stickWidth)
+	d = min(d, sdSeg(p, vec2(-0.2, 0.15), vec2(-0.25, 0.3+rlo*0.5-jumpoffy))-stickWidth)
+	// Right
+	d = min(d, sdSeg(p, vec2(0, 0), vec2(0.2, 0.15))-stickWidth)
+	d = min(d, sdSeg(p, vec2(0.2, 0.15), vec2(0.25, 0.3+llo*0.5-jumpoffy))-stickWidth)
+	// Legs
+	d = min(d, sdSeg(p, vec2(0, 0.35), vec2((-0.2+llo), 0.6+llo-jumpoffy))-stickWidth)
+	d = min(d, sdSeg(p, vec2((-0.2+llo), 0.6+llo-jumpoffy), vec2((-0.25+llo), 0.9+llo*0.5-jumpoffy))-stickWidth)
+	// Right
+	d = min(d, sdSeg(p, vec2(0, 0.35), vec2((0.2-rlo), 0.6+rlo-jumpoffy))-stickWidth)
+	d = min(d, sdSeg(p, vec2((0.2-rlo), 0.6+rlo-jumpoffy), vec2((0.25-rlo), 0.9+rlo*0.5-jumpoffy))-stickWidth)
+	if d < 0 {
+		return vec4(vec3(1)*clrc, d)
+	}
+
+	return vec4(0)
 }
 
 func phong(ldir, normal, clr, specular vec3, glossiness float) vec3 {
@@ -176,7 +265,7 @@ func rayMarch(ro, rd vec3) (vec4, vec4) {
 		if !insideWorldBox(p / 2) {
 			break
 		}
-		
+
 		vox = voxel(p)
 		if vox.w > 0.5 || i > maxi {
 			res = 1.
@@ -186,18 +275,27 @@ func rayMarch(ro, rd vec3) (vec4, vec4) {
 		dis += (mm * rs * ri)
 		p += (mm * rs)
 	}
-
-	// intersect the cube
-	mini := (p - ro + 0.5 - 0.5001*vec3(rs)) * ri // with a tiny bias so the shadows dont glitch out
+	// Cube intersection
+	mini := (p - ro + 0.5 - 0.5001*vec3(rs)) * ri
 	t := max(mini.x, max(mini.y, mini.z)) * res
 
 	return vec4(t, -mm*rs), voxel
 }
 
+var Time float
 var Offset vec3
 var HorizontalAngle float
 var MapSize vec3
 var Zoom float
+
+var PlayerIdle float
+var PlayerWalking float
+var PlayerRunning float
+var PlayerJumping float
+var AgentIdle float
+var AgentWalking float
+var AgentRunning float
+var AgentJumping float
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	const ratio = 16. / 9.
@@ -211,8 +309,9 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	ha := noZeroSign(HorizontalAngle) * max(abs(HorizontalAngle), 0.001)
 	// Note: need to revert offset z, idk why
 	off := Offset.xyz * vec3(1, 1, -1)
+	off.z += 1 // :)
 	// Ray origin
-	ro := vec3(uv.x, MapSize.y-1, uv.y+MapSize.y-1)
+	ro := vec3(uv.x, MapSize.y, uv.y+MapSize.y)
 	ro.xz = rotate2D(ro.xz, ha)
 	ro += off
 	// Ray direction
@@ -228,22 +327,45 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	res, vox := rayMarch(ro, rd)
 	_ = vox
 	d, normal := res.x, res.yzw
-	//return vec4(vec3(abs(d)/64), 1)
 	p := ro + rd*d
+	// Player character
+	// Player billboard
+	/*ruv := vec3(uv.x, 0, uv.y)
+	ruv.x = rotate2D(ruv.xx, ha).x*/
+	if ddp := iBox(ro-off, rd, vec3(0.5, 0.5, 0.01)); ddp.x > 0 {
+		pos := (ro - off) + rd*ddp.x
+		tuv := pos.xyz * vec3(2, -2, 2)
+		norm := ddp.yzw
+		back := 0.
+		if norm.z < 0. {
+			back = 1 // TODO:
+		}
+		_, _ = back, tuv
+		player := (1 - back) * sdChar(tuv.xy, 1., PlayerRunning, PlayerWalking, PlayerIdle, PlayerJumping)
+		player += back * sdChar(tuv.xy, -1., PlayerRunning, PlayerWalking, PlayerIdle, PlayerJumping)
+		if d < ddp.x {
+			player.rgb *= 0.1
+		}
+		if player.w < 0 {
+			return vec4(player.rgb, 1)
+		}
+	}
+	/*if dp := sdBox(ruv, vec3(0.1, 0.5, 0.5)); dp < 0 {
+
+		ddp := length(ro - (off + vec3(0, 0.5, 0)))
+		// TODO: use step
+		if d < ddp && d > 0 {
+			tex.rgb *= 0.1
+		}
+		if tex.a > 0 {
+			return tex
+		}
+	}*/
 	// If still outside world box
 	if sdBox(p+boxoff, wb) > 0 || d < 0 {
 		// TODO: Star field?
 		discard()
 		return
-	}
-	// Player billboard
-	ddp := length(ro - (off + vec3(0, 0.5, 0)))
-	if dp := length(vec3(uv.x, 0, uv.y)) - 0.5; dp < 0 {
-		if d < ddp && d > 0 {
-			return vec4(vec3(0), 1)
-		} else {
-			return vec4(1)
-		}
 	}
 
 	// Texture color calculation TODO: tbd
