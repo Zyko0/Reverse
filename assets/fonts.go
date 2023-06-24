@@ -9,7 +9,8 @@ import (
 )
 
 var (
-	MapGenFontFace font.Face
+	MapGenFontFace      font.Face
+	MapGenDebugFontFace font.Face
 )
 
 func init() {
@@ -19,5 +20,8 @@ func init() {
 	}
 	MapGenFontFace = truetype.NewFace(tfont, &truetype.Options{
 		Size: 27,
+	})
+	MapGenDebugFontFace = truetype.NewFace(tfont, &truetype.Options{
+		Size: 12,
 	})
 }

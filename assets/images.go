@@ -14,15 +14,15 @@ const (
 )
 
 var (
-	//go:embed images/material.jpg
-	materialBytes []byte
-	MaterialImage *ebiten.Image
+	//go:embed images/sheet0.jpg
+	sheet0Bytes []byte
+	Sheet0Image *ebiten.Image
 )
 
 func init() {
-	img, err := jpeg.Decode(bytes.NewReader(materialBytes))
+	img, err := jpeg.Decode(bytes.NewReader(sheet0Bytes))
 	if err != nil {
 		log.Fatal(err)
 	}
-	MaterialImage = ebiten.NewImageFromImage(img)
+	Sheet0Image = ebiten.NewImageFromImage(img)
 }

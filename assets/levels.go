@@ -8,7 +8,7 @@ import (
 )
 
 var (
-	//go:embed levels/level0.rev
+	//go:embed levels/0.rev
 	level0Src []byte
 	Level0    = &level.Map{}
 )

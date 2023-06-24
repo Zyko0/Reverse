@@ -3,12 +3,15 @@ package graphics
 import (
 	"github.com/Zyko0/Reverse/assets"
 	"github.com/Zyko0/Reverse/core"
-	"github.com/Zyko0/Reverse/pkg/level"
+	"github.com/Zyko0/Reverse/core/agents"
 	"github.com/Zyko0/Reverse/logic"
+	"github.com/Zyko0/Reverse/pkg/level"
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
 type Renderer struct {
+	ticks uint64
+	sheet bool
 	drawn bool
 
 	heightmap *ebiten.Image
@@ -18,11 +21,14 @@ type Renderer struct {
 type State struct {
 	Level  *level.Map
 	Camera *core.Camera
-	Player *core.Player
+	Player *agents.Player
+	Agent  agents.Agent
 }
 
 func NewRenderer() *Renderer {
 	return &Renderer{
+		ticks: 0,
+		sheet: false,
 		drawn: false,
 
 		heightmap: ebiten.NewImage(logic.MapWidth, logic.MapDepth),
@@ -32,6 +38,7 @@ func NewRenderer() *Renderer {
 
 func (r *Renderer) Update() {
 	r.drawn = false
+	r.ticks++
 }
 
 var (
@@ -43,7 +50,11 @@ var mapdrawn bool // TODO: make it better ofc
 
 func (r *Renderer) Draw(screen *ebiten.Image, state *State) {
 	if !r.drawn {
-		r.offscreen.Clear()
+		// Spritesheet update
+		if !r.sheet {
+			SheetImage.DrawImage(assets.Sheet0Image, nil) // TODO: make it dynamic
+			r.sheet = true
+		}
 		// Map generation
 		if !mapdrawn {
 			r.heightmap.WritePixels(state.Level.CompileBytes())
@@ -58,8 +69,30 @@ func (r *Renderer) Draw(screen *ebiten.Image, state *State) {
 				SrcHeight: logic.MapDepth,
 			},
 		)
+		r.offscreen.Clear()
+		// Player states
+		var pidle, pwalk, prun, pjump float32
+		switch state.Player.GetState() {
+		case agents.StateIdle:
+			pidle = 1
+		case agents.StateJumping:
+			// Must have prio over walk / run
+			pjump = 1 - float32(state.Player.JumpingTicks)/float32(agents.JumpingTicks)
+			//pjump *= 2
+		case agents.StateWalking:
+			pwalk = 1
+		case agents.StateRunning:
+			prun = 1
+		case agents.StateFalling:
+			pjump = 1
+			prun = 1
+		}
+		// Agent states
+
+		// Render scene
 		r.offscreen.DrawTrianglesShader(vertices, indices, assets.SceneShader, &ebiten.DrawTrianglesShaderOptions{
 			Uniforms: map[string]any{
+				"Time": float64(r.ticks) / logic.TPS,
 				"Offset": []float32{
 					float32(state.Player.Position.X) - logic.MapWidth/2,
 					float32(state.Player.Position.Y),
@@ -72,9 +105,15 @@ func (r *Renderer) Draw(screen *ebiten.Image, state *State) {
 					logic.MapDepth,
 				},
 				"Zoom": float32(state.Camera.Zoom * logic.BaseZoom * float64(logic.MapWidth)),
+				// Player
+				"PlayerIdle":    pidle,
+				"PlayerWalking": pwalk,
+				"PlayerRunning": prun,
+				"PlayerJumping": pjump,
 			},
 			Images: [4]*ebiten.Image{
 				r.heightmap,
+				SheetImage,
 			},
 		})
 		// Mark frame as drawn for this tick
@@ -87,7 +126,8 @@ func (r *Renderer) Draw(screen *ebiten.Image, state *State) {
 	//opts.GeoM.Scale(2, 2) // TODO: Resolution parameter
 	//opts.GeoM.Translate(0, logic.ScreenHeight/2-logic.ScreenWidth/2)
 	screen.DrawImage(r.offscreen, opts)
-
+	screen.DrawImage(SheetImage, nil)
+	//screen.DrawImage(r.heightmap, nil)
 	/*opts = &ebiten.DrawImageOptions{}
 	opts.GeoM.Scale(16, 16)
 	screen.DrawImage(r.heightmap, opts)*/

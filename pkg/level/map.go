@@ -3,6 +3,7 @@ package level
 import (
 	"bytes"
 	"encoding/gob"
+	"fmt"
 
 	"github.com/Zyko0/Reverse/logic"
 	"github.com/Zyko0/Reverse/pkg/geom"
@@ -18,6 +19,10 @@ type Map struct {
 	HeightMap [][]Column
 	Start     geom.Vec3
 	Goal      geom.Vec3
+}
+
+func (lm *Map) At(x, z int) Column {
+	return lm.HeightMap[z][x]
 }
 
 func (lm *Map) Deserialize(data []byte) error {
@@ -44,9 +49,14 @@ func (lm *Map) CompileBytes() []byte {
 	pixels := make([]byte, logic.MapDepth*logic.MapWidth*4)
 	for z := 0; z < logic.MapDepth; z++ {
 		for x := 0; x < logic.MapWidth; x++ {
-			i := z*(logic.MapWidth*4) + x*4
-			c := lm.HeightMap[z][x]
+			const rowSize = logic.MapWidth * 4
+
+			i := z*rowSize + x*4
+			c := lm.At(x, z)
 			pixels[i+0] = byte(float64(c.Height) / logic.MapHeight * 255)
+			if c.TopMaterialID != 0 || c.SideMaterialID != 0 {
+				fmt.Println("Materialids", c.TopMaterialID, c.SideMaterialID)
+			}
 			pixels[i+1] = c.TopMaterialID
 			pixels[i+2] = c.SideMaterialID
 			pixels[i+3] = 255

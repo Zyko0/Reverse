@@ -362,6 +362,8 @@ func (g *App) Draw(screen *ebiten.Image) {
 	if !g.lastsave.IsZero() {
 		debugStr += fmt.Sprintf(" saved: %v - err: %v", g.lastsave.Format(time.RFC1123), g.err)
 	}
+	// Debug
+	screen.SubImage(image.Rect(0, 0, 490, 64)).(*ebiten.Image).Fill(color.RGBA{32, 32, 32, 255})
 	ebitenutil.DebugPrint(screen, debugStr)
 	// Commands
 	ebitenutil.DebugPrintAt(screen, "- Left click to select (shift click for a region) - Right click to reset", 0, 12)

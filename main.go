@@ -79,10 +79,11 @@ func main() {
 
 	ebiten.SetFullscreen(true)
 	ebiten.SetVsyncEnabled(false) // TODO: remove
+	ebiten.SetWindowSize(logic.ScreenWidth, logic.ScreenHeight)
 	ebiten.SetMaxTPS(logic.TPS)
 	ebiten.SetCursorMode(ebiten.CursorModeCaptured)
-	// TODO: (stable) go get github.com/hajimehoshi/ebiten/v2@1c09ec5e44727a0c38b605552d93e4d470a128ab
-	// This one actually: v2.5.0-alpha.12.0.20230228174701-7c0fbce0cfd8
+	// (broken) go get github.com/hajimehoshi/ebiten/v2@1c09ec5e44727a0c38b605552d93e4d470a128ab
+	// (stable) v2.5.0-alpha.12.0.20230228174701-7c0fbce0cfd8
 	if err := ebiten.RunGame(New()); err != nil {
 		// TODO: gracefull
 	}
