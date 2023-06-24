@@ -7,9 +7,9 @@ import (
 
 var (
 	StartPlayerPosition = geom.Vec3{
-		X: logic.MapWidth / 2,
+		X: logic.MapWidth / 2-10,
 		Y: 5,
-		Z: logic.MapDepth * 0.1,
+		Z: logic.MapDepth * 0.1-6,
 	}
 	StartAgentPosition = geom.Vec3{
 		X: logic.MapWidth / 2,
@@ -17,3 +17,7 @@ var (
 		Z: logic.MapDepth * 0.9,
 	}
 )
+
+func init() {
+	StartPlayerPosition, StartAgentPosition = StartAgentPosition, StartPlayerPosition
+}

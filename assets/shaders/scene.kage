@@ -349,10 +349,8 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		}
 		agent := (1 - back) * sdChar(tuv.xy, 1., AgentRunning, AgentWalking, AgentIdle, AgentJumping)
 		agent += back * sdChar(tuv.xy, -1., AgentRunning, AgentWalking, AgentIdle, AgentJumping)
-		if d < ddp.x {
-			agent.rgb *= 0.1
-		}
-		if agent.w < 0 {
+		// Do not display anything if hidden
+		if d >= ddp.x && agent.w < 0 {
 			//p = ro +rd*ddp.x // TODO: Camouflage
 			return vec4(agent.rgb, 1)
 		}
