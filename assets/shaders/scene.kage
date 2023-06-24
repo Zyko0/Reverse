@@ -73,8 +73,9 @@ func texture(p, normal vec3, id vec2) vec3 {
 	origin, size := imageSrcRegionOnTexture()
 	ip := floor(p)
 	xoff := floor(hash(floor(ip.xz), 1) * 3.99)
+	// Texture offset
+	v := vec2(xoff, id.x)
 	// Mod rule
-	v := vec2(xoff, id.y)
 	if id.y == 1 {
 		v.y -= float(int(ip.x+ip.y+ip.z) % 2) // Why minus? idk
 	}
@@ -204,19 +205,28 @@ func sdChar(p vec2, front, run, walk, idle, jump float) vec4 {
 	return vec4(0)
 }
 
-func phong(ldir, normal, clr, amb, specular vec3, glossiness float) vec3 {
+func phong(rd, ldir, normal, clr, amb, specular vec3, glossiness float) vec3 {
 	// ambient
-	ambientStrength := 0.5           //0.5
-	ambient := ambientStrength * amb //vec3(1)
+	ambientStrength := 0.5
+	ambient := ambientStrength * amb
 
 	// diffuse
 	diffuse := clr
 
 	// specular
-	hwdir := normalize(ldir + normal)
-	specular = specular * pow(max(dot(normal, hwdir), 0.), glossiness)
+	/*hwdir := normalize(ldir + normal)
+	specular = specular * pow(max(dot(normal, hwdir), 0.), glossiness)*/
+	// specular
+	dotRV := dot(reflect(ldir, normal), -rd)
+	//hway := normalize(-rd + ldir)
+	//dotRV = dot(hway, normal)
+	//dotRV = max(dotRV, 0)
+	//specular = specular * pow(dotRV, glossiness) * 256.
+	specular = specular * pow(dotRV, 64) //* 0.5
+	specular = clamp(specular, 0, 1)     //*0.0
+	//specular = clamp(specular, 0, 1)
 
-	return ambient + diffuse + 0*specular
+	return ambient + diffuse + specular
 }
 
 func rayMarch(ro, rd vec3, ms float) (vec4, vec4) {
@@ -364,29 +374,44 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	// Texture color calculation TODO: tbd
 	diffuse := texture(p, normal, vox.yz) // vec3(0.5, 0, 1) //
 	//return vec4(diffuse, 1.)              // TODO: texture debug
-	specular := 0.1
+	specular := vec3(1)
 	glossiness := 16.
 	// Lights calculation
-	clr := vec3(0)
 	lights := [5]vec3{
-		vec3(-0.5, 0.75, -0.5) * MapSize,
+		/*vec3(-0.5, 0.75, -0.5) * MapSize,
 		vec3(0.5, 0.75, -0.5) * MapSize,
 		vec3(-0.5, 0.75, 0.5) * MapSize,
-		vec3(0.5, 0.75, 0.5) * MapSize,
-		off + vec3(0, 20, 0),
+		vec3(0.5, 0.75, 0.5) * MapSize,*/
+		/*vec3(-0.75, 1.5, -0.75) * MapSize,
+		vec3(0.75, 1.5, -0.75) * MapSize,
+		vec3(-0.75, 1.5, 0.75) * MapSize,
+		vec3(0.75, 1.5, 0.75) * MapSize,*/
+		vec3(-0.5, 0.6, 0.5) * MapSize,
+		vec3(0.5, 0.6, -0.5) * MapSize,
+		vec3(-0.5, 0.6, -0.5) * MapSize,
+		vec3(0.5, 0.6, 0.5) * MapSize,
+		//vec3(0), vec3(0), vec3(0),
+		off + vec3(0, 0, 0),
 	}
+	clr := vec3(0)
 	for i := 0; i < 5; i++ {
 		lightpos := lights[i] //vec3(0, 1.1, 0) * MapSize
-		lightpos.xz = rotate2D(lightpos.xz, Time*0.5*step(float(i), 3))
+		rot := step(float(i), 3)
+		/*lightpos.xz += Offset.xz
+		lightpos.xz = rotate2D(lightpos.xz, rot*ha)
+		lightpos.xz -= Offset.xz*/
+		lightpos.xz = rotate2D(lightpos.xz, rot*Time*0.5)
 		lightdir := normalize(lightpos - p)
 		//return vec4(abs(lightdir), 1.)
-		lightint := 0.25
-		spec := vec3(1) * specular //lightclr * specular
+		lightint := 0.2 //0.2
 		tclr := phong(
-			lightdir, normal.xyz, diffuse, AmbientColors[i], spec, glossiness,
-		) * lightint //* lclrs[i]
+			rd, lightdir, normal.xyz, diffuse, AmbientColors[i], specular, glossiness,
+		) * lightint
 		// Shadows
 		tclr *= clamp(shadow(p, lightdir, normal), MinShadow, 1)
+		// clr = min(clr, tclr) // TODO: turning lights off ability
+		//shadowv = max(shadowv, clamp(shadow(p, lightdir, normal), MinShadow, 1))
+		//clr += max(tclr, clr/float(i+1))
 		clr += tclr
 	}
 

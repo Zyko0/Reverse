@@ -368,8 +368,8 @@ func (g *App) Draw(screen *ebiten.Image) {
 	// Commands
 	ebitenutil.DebugPrintAt(screen, "- Left click to select (shift click for a region) - Right click to reset", 0, 12)
 	ebitenutil.DebugPrintAt(screen, "- Press pnum + or - to change height", 0, 24)
-	ebitenutil.DebugPrintAt(screen, "- Press I/K to change top material id", 0, 36)
-	ebitenutil.DebugPrintAt(screen, "- Press O/L to change side material id", 0, 48)
+	ebitenutil.DebugPrintAt(screen, "- Press I/K to change material row id", 0, 36)
+	ebitenutil.DebugPrintAt(screen, "- Press O/L to change texturing rule", 0, 48)
 }
 
 func (g *App) Layout(outsideWidth, outsideHeight int) (int, int) {
