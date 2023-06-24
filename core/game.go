@@ -3,12 +3,13 @@ package core
 import (
 	"github.com/Zyko0/Reverse/assets"
 	"github.com/Zyko0/Reverse/core/agents"
-	"github.com/Zyko0/Reverse/logic"
 	"github.com/Zyko0/Reverse/pkg/geom"
 	"github.com/Zyko0/Reverse/pkg/level"
 )
 
 type Game struct {
+	lvl int
+
 	Level  *level.Map
 	Player *agents.Player
 	Agent  agents.Agent
@@ -16,33 +17,38 @@ type Game struct {
 }
 
 func NewGame() *Game {
-	position := geom.Vec3{
-		X: logic.MapWidth / 2,
-		Y: 4.5,   // TODO: default height
-		Z: 244.5, //MapDepth / 2,
-	}
-
 	return &Game{
 		Level:  assets.Level0,
-		Player: agents.NewPlayer(position),
+		Player: agents.NewPlayer(),
+		Agent:  agents.NewAgent0(),
 		Camera: newCamera(), // TODO: set initial direction
 	}
 }
 
 func (g *Game) Update() {
+	// Player
 	g.Player.Update(nil)
-	// Camera
-	// TODO: process new player position with intents and new cam direction just here
-	//g.Player.Position = g.Player.Position.Add(g.Camera.Direction.Mul(g.Player.Intent))
 	pxz := geom.Vec2{
 		X: g.Player.Intent.X,
 		Y: g.Player.Intent.Z,
 	}.Rotate(g.Camera.HAngle)
 	g.ResolveCollisions(g.Player, geom.Vec3{
 		X: pxz.X,
-		Y: g.Player.Intent.Y,
+		Y: 0,
 		Z: pxz.Y,
 	})
-	// TODO: ^
-	g.Camera.Update() // Only ticks for now
+	// Agent
+	g.Agent.Update(nil)
+	intent := g.Agent.GetIntent()
+	g.ResolveCollisions(g.Agent, geom.Vec3{
+		X: intent.X,
+		Y: 0,
+		Z: intent.Z,
+	})
+	// Camera
+	g.Camera.Update()
+}
+
+func (g *Game) GetLevel() int {
+	return g.lvl
 }

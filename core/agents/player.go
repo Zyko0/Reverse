@@ -1,7 +1,7 @@
 package agents
 
 import (
-	"github.com/Zyko0/Reverse/pkg/geom"
+	"github.com/Zyko0/Reverse/pkg/level"
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
@@ -9,11 +9,11 @@ type Player struct {
 	base
 }
 
-func NewPlayer(position geom.Vec3) *Player {
+func NewPlayer() *Player {
 	return &Player{
 		base{
 			Grounded: true,
-			Position: position,
+			Position: level.StartAgentPosition,
 		},
 	}
 }

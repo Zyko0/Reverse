@@ -40,18 +40,19 @@ func (g *Game) Update() error {
 func (g *Game) Draw(screen *ebiten.Image) {
 	// Render game
 	g.renderer.Draw(screen, &graphics.State{
-		Level:  g.game.Level,
+		Level:  g.game.GetLevel(),
+		Map:    g.game.Level,
 		Camera: g.game.Camera,
 		Player: g.game.Player,
+		Agent:  g.game.Agent,
 	})
 	// Debug
 	ebitenutil.DebugPrint(
 		screen,
-		fmt.Sprintf("TPS: %0.2f - FPS %.02f - PPos (%v) CamPos(%v) CamDir(%v) Intent(%v) Hangle %.4f - Block(%d,%d)",
+		fmt.Sprintf("TPS: %0.2f - FPS %.02f - PPos (%v) Intent(%v) Hangle %.4f - Block(%d,%d)",
 			ebiten.CurrentTPS(),
 			ebiten.CurrentFPS(),
-			g.game.Player.Position,
-			g.game.Camera.Position, g.game.Camera.Direction, g.game.Player.Intent,
+			g.game.Player.Position, g.game.Player.Intent,
 			g.game.Camera.HAngle,
 			int(g.game.Player.Position.X), int(g.game.Player.Position.Z),
 		),

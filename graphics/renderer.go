@@ -10,16 +10,18 @@ import (
 )
 
 type Renderer struct {
-	ticks uint64
-	sheet bool
-	drawn bool
+	ticks      uint64
+	sheetdrawn bool
+	mapdrawn   bool
+	drawn      bool
 
 	heightmap *ebiten.Image
 	offscreen *ebiten.Image
 }
 
 type State struct {
-	Level  *level.Map
+	Level  int
+	Map    *level.Map
 	Camera *core.Camera
 	Player *agents.Player
 	Agent  agents.Agent
@@ -27,13 +29,36 @@ type State struct {
 
 func NewRenderer() *Renderer {
 	return &Renderer{
-		ticks: 0,
-		sheet: false,
-		drawn: false,
+		ticks:      0,
+		sheetdrawn: false,
+		mapdrawn:   false,
+		drawn:      false,
 
 		heightmap: ebiten.NewImage(logic.MapWidth, logic.MapDepth),
 		offscreen: ebiten.NewImage(logic.ScreenWidth, logic.ScreenHeight),
 	}
+}
+
+func (r *Renderer) agentStates(a agents.Agent) (float32, float32, float32, float32) {
+	var idle, walk, run, jump float32
+
+	switch a.GetState() {
+	case agents.StateIdle:
+		idle = 1
+	case agents.StateJumping:
+		// Must have prio over walk / run
+		jump = 1 - float32(a.GetJumpingTicks())/float32(agents.JumpingTicks)
+		//pjump *= 2
+	case agents.StateWalking:
+		walk = 1
+	case agents.StateRunning:
+		run = 1
+	case agents.StateFalling:
+		jump = 1
+		run = 1
+	}
+
+	return idle, walk, run, jump
 }
 
 func (r *Renderer) Update() {
@@ -46,19 +71,17 @@ var (
 	indices  []uint16
 )
 
-var mapdrawn bool // TODO: make it better ofc
-
 func (r *Renderer) Draw(screen *ebiten.Image, state *State) {
 	if !r.drawn {
 		// Spritesheet update
-		if !r.sheet {
-			SheetImage.DrawImage(assets.Sheet0Image, nil) // TODO: make it dynamic
-			r.sheet = true
+		if !r.sheetdrawn {
+			SheetImage.DrawImage(assets.Sheet0Image, nil)
+			r.sheetdrawn = true
 		}
 		// Map generation
-		if !mapdrawn {
-			r.heightmap.WritePixels(state.Level.CompileBytes())
-			mapdrawn = true
+		if !r.mapdrawn {
+			r.heightmap.WritePixels(state.Map.CompileBytes())
+			r.mapdrawn = true
 		}
 		// Scene rendering
 		vertices, indices = AppendQuadVerticesIndices(
@@ -70,25 +93,10 @@ func (r *Renderer) Draw(screen *ebiten.Image, state *State) {
 			},
 		)
 		r.offscreen.Clear()
-		// Player states
-		var pidle, pwalk, prun, pjump float32
-		switch state.Player.GetState() {
-		case agents.StateIdle:
-			pidle = 1
-		case agents.StateJumping:
-			// Must have prio over walk / run
-			pjump = 1 - float32(state.Player.JumpingTicks)/float32(agents.JumpingTicks)
-			//pjump *= 2
-		case agents.StateWalking:
-			pwalk = 1
-		case agents.StateRunning:
-			prun = 1
-		case agents.StateFalling:
-			pjump = 1
-			prun = 1
-		}
-		// Agent states
-
+		// Agents states
+		pidle, pwalk, prun, pjump := r.agentStates(state.Player)
+		aidle, awalk, arun, ajump := r.agentStates(state.Agent)
+		agentPosition := state.Agent.GetPosition()
 		// Render scene
 		r.offscreen.DrawTrianglesShader(vertices, indices, assets.SceneShader, &ebiten.DrawTrianglesShaderOptions{
 			Uniforms: map[string]any{
@@ -104,12 +112,23 @@ func (r *Renderer) Draw(screen *ebiten.Image, state *State) {
 					logic.MapHeight,
 					logic.MapDepth,
 				},
-				"Zoom": float32(state.Camera.Zoom * logic.BaseZoom * float64(logic.MapWidth)),
+				"Zoom":          float32(state.Camera.Zoom * logic.BaseZoom * float64(logic.MapWidth)),
+				"AmbientColors": AmbientColorsByLevel[state.Level],
 				// Player
 				"PlayerIdle":    pidle,
 				"PlayerWalking": pwalk,
 				"PlayerRunning": prun,
 				"PlayerJumping": pjump,
+				// Agent
+				"AgentPosition": []float32{
+					float32(agentPosition.X) - logic.MapWidth/2,
+					float32(agentPosition.Y),
+					float32(agentPosition.Z) - logic.MapDepth/2,
+				},
+				"AgentIdle":    aidle,
+				"AgentWalking": awalk,
+				"AgentRunning": arun,
+				"AgentJumping": ajump,
 			},
 			Images: [4]*ebiten.Image{
 				r.heightmap,

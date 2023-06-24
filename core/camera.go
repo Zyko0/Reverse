@@ -3,7 +3,6 @@ package core
 import (
 	"math"
 
-	"github.com/Zyko0/Reverse/pkg/geom"
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
@@ -12,10 +11,8 @@ type Camera struct {
 	lastCursorX int
 	zoomValue   float64
 
-	HAngle    float64
-	Position  geom.Vec3
-	Direction geom.Vec3
-	Zoom      float64
+	HAngle float64
+	Zoom   float64
 }
 
 func newCamera() *Camera {
@@ -29,7 +26,7 @@ func newCamera() *Camera {
 }
 
 var (
-	minZoom = math.Log(0.1)//math.Log(1) // TODO: restore
+	minZoom = math.Log(0.1) //math.Log(1) // TODO: restore
 	maxZoom = math.Log(7)
 )
 

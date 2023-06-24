@@ -1,20 +1,22 @@
 package agents
 
-import "github.com/Zyko0/Reverse/pkg/geom"
+import (
+	"github.com/Zyko0/Reverse/pkg/level"
+)
 
 type Agent0 struct {
 	base
 }
 
-func NewAgent0(position geom.Vec3) *Agent0 {
+func NewAgent0() *Agent0 {
 	return &Agent0{
 		base{
-			Position: position,
+			Position: level.StartAgentPosition,
 			Grounded: true,
 		},
 	}
 }
 
-func (a0 *Agent0) Update() {
-	
+func (a0 *Agent0) Update(env *Env) {
+
 }
