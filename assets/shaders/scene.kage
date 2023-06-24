@@ -6,7 +6,7 @@ const (
 	Sqrt2     = 1.41421568
 	Precision = 0.0001
 	// Lights
-	MinShadow = 0.2
+	MinShadow = 0. //.2
 )
 
 func hash(p vec2, seed float) float {
@@ -250,7 +250,7 @@ func rayMarch(ro, rd vec3, ms float) (vec4, vec4) {
 		p += (mm * rs)
 	}
 	// Cube intersection
-	mini := (p - ro + 0.5 - 0.5001*vec3(rs)) * ri
+	mini := (p - ro + 0.5 - 0.5005*vec3(rs)) * ri
 	t := max(mini.x, max(mini.y, mini.z))
 	t = abs(t) * res
 
@@ -262,7 +262,10 @@ func shadow(ro, rd, normal vec3) float {
 	if res.x > 0 {
 		d := min(res.x, 1)
 		d = d * d * (3 - 2*d)
-		return d * max(dot(normal, rd), 0)
+		sd := max(dot(normal, rd), 0)
+		sd *= (0.975 + hash(ro.xz, 1)*0.025) // Little dithering to remove banding
+		sd = sd * sd * (3 - 2*sd)
+		return d * sd
 	}
 
 	return 1
@@ -345,17 +348,29 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	specular := 0.1
 	glossiness := 16.
 	// Lights calculation
-	lightpos := vec3(0, 1.1, 0) * MapSize
-	lightdir := normalize(lightpos - p)
-	//return vec4(abs(lightdir), 1.)
-	lightclr := vec3(1)
-	lightint := 1.
-	spec := lightclr * specular
-	clr := lightclr * phong(
-		lightdir, normal.xyz, diffuse.rgb, spec, glossiness,
-	) * lightint
-	// Shadows
-	clr *= clamp(shadow(p, lightdir, normal), MinShadow, 1)
+	clr := vec3(0)
+	lights := [5]vec3{
+		vec3(-0.5, 0.75, -0.5) * MapSize,
+		vec3(0.5, 0.75, -0.5) * MapSize,
+		vec3(-0.5, 0.75, 0.5) * MapSize,
+		vec3(0.5, 0.75, 0.5) * MapSize,
+		off+vec3(0,20,0),
+	}
+	_ = lights
+	for i := 0; i < 5; i++ {
+		lightpos := lights[i] //vec3(0, 1.1, 0) * MapSize
+		lightpos.xz = rotate2D(lightpos.xz, Time*0.5*step(float(i), 3))
+		lightdir := normalize(lightpos - p)
+		//return vec4(abs(lightdir), 1.)
+		lightint := 0.25
+		spec := vec3(1) * specular //lightclr * specular
+		tclr := phong(
+			lightdir, normal.xyz, diffuse, spec, glossiness,
+		) * lightint
+		// Shadows
+		tclr *= clamp(shadow(p, lightdir, normal), MinShadow, 1)
+		clr += tclr
+	}
 
 	return vec4(clr, 1)
 }

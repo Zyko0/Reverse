@@ -29,7 +29,7 @@ func newCamera() *Camera {
 }
 
 var (
-	minZoom = math.Log(1)
+	minZoom = math.Log(0.1)//math.Log(1) // TODO: restore
 	maxZoom = math.Log(7)
 )
 

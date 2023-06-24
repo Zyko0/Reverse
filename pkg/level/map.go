@@ -3,7 +3,6 @@ package level
 import (
 	"bytes"
 	"encoding/gob"
-	"fmt"
 
 	"github.com/Zyko0/Reverse/logic"
 	"github.com/Zyko0/Reverse/pkg/geom"
@@ -54,9 +53,6 @@ func (lm *Map) CompileBytes() []byte {
 			i := z*rowSize + x*4
 			c := lm.At(x, z)
 			pixels[i+0] = byte(float64(c.Height) / logic.MapHeight * 255)
-			if c.TopMaterialID != 0 || c.SideMaterialID != 0 {
-				fmt.Println("Materialids", c.TopMaterialID, c.SideMaterialID)
-			}
 			pixels[i+1] = c.TopMaterialID
 			pixels[i+2] = c.SideMaterialID
 			pixels[i+3] = 255
