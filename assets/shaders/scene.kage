@@ -71,17 +71,17 @@ func texture(p, normal vec3, id vec2) vec3 {
 	id = floor(id*255 + 0.5)
 
 	origin, size := imageSrcRegionOnTexture()
-	/*x := vec3(0.5) * hash(floor(p.yz*8.), 1)
-	y := vec3(0, 1, 0) * hash(floor(p.zx*8.), 1)
-	z := vec3(0.5) * hash(floor(p.xy*8.), 1)*/
-	// Note: Replaced .yz with .xy from both x && z
-	//pp := p
-	xoff := floor(hash(floor(p.xz), 1) * 3.99)
-	_ = xoff
+	ip := floor(p)
+	xoff := floor(hash(floor(ip.xz), 1) * 3.99)
+	// Mod rule
+	v := vec2(xoff, id.y)
+	if id.y == 1 {
+		v.y -= float(int(ip.x+ip.y+ip.z) % 2) // Why minus? idk
+	}
 	p = fract(p)
-	x := imageSrc1UnsafeAt(origin + (vec2(xoff, id.x)+p.yz)/4*size).rgb
-	y := imageSrc1UnsafeAt(origin + (vec2(xoff, id.y)+p.xz)/4*size).rgb
-	z := imageSrc1UnsafeAt(origin + (vec2(xoff, id.x)+p.xy)/4*size).rgb
+	x := imageSrc1UnsafeAt(origin + (v+p.yz)/4*size).rgb
+	y := imageSrc1UnsafeAt(origin + (v+p.xz)/4*size).rgb
+	z := imageSrc1UnsafeAt(origin + (v+p.xy)/4*size).rgb
 	// Blend
 	m := abs(normal)
 	return (x*m.x + y*m.y + z*m.z) / (m.x + m.y + m.z)
@@ -300,9 +300,9 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	ha := noZeroSign(HorizontalAngle) * min(max(abs(HorizontalAngle), 0.001), TwoPi-0.001)
 	// Note: need to revert offset z, idk why
 	off := Offset.xyz * vec3(1, 1, -1)
-	off.z += 1 // :)
+	off.z += 1                // :)
 	aoff := AgentPosition.xyz //* vec3(1, 1, -1)
-	aoff.z += 1 // ??
+	aoff.z += 1               // ??
 	// Ray origin
 	ro := vec3(uv.x, MapSize.y, uv.y+MapSize.y)
 	ro.xz = rotate2D(ro.xz, ha)
@@ -362,8 +362,8 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		return
 	}
 	// Texture color calculation TODO: tbd
-	diffuse := texture(p, normal, vox.xy) // vec3(0.5, 0, 1) //
-	//return vec4(diffuse, 1.)         // TODO: texture debug
+	diffuse := texture(p, normal, vox.yz) // vec3(0.5, 0, 1) //
+	//return vec4(diffuse, 1.)              // TODO: texture debug
 	specular := 0.1
 	glossiness := 16.
 	// Lights calculation
