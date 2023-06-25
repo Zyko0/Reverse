@@ -3,11 +3,14 @@ package main
 import (
 	"errors"
 	"fmt"
+	"log"
 	"os"
 
+	"github.com/Zyko0/Reverse/assets"
 	"github.com/Zyko0/Reverse/core"
 	"github.com/Zyko0/Reverse/graphics"
 	"github.com/Zyko0/Reverse/logic"
+	"github.com/fsnotify/fsnotify"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 )
@@ -24,6 +27,8 @@ func New() *Game {
 	}
 }
 
+var reload bool
+
 func (g *Game) Update() error {
 	if ebiten.IsKeyPressed(ebiten.KeyEscape) {
 		return errors.New("quit")
@@ -32,7 +37,11 @@ func (g *Game) Update() error {
 	// Update game
 	g.game.Update()
 	// Update renderer
-	g.renderer.Update()
+	g.renderer.Update(reload)
+	// TODO: remove below
+	if reload {
+		reload = false
+	}
 
 	return nil
 }
@@ -77,12 +86,51 @@ func main() {
 		return
 	}
 	defer pprof.StopCPUProfile()*/
+	// TODO: remove below
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer watcher.Close()
+
+	const fname = "./assets/levels/0.rev"
+	go func() {
+		for {
+			select {
+			case event, ok := <-watcher.Events:
+				if !ok {
+					return
+				}
+				if event.Has(fsnotify.Write) {
+					b, err := os.ReadFile(fname)
+					if err != nil {
+						log.Println("err read:", err)
+					}
+					err = assets.Level0.Deserialize(b)
+					if err != nil {
+						log.Println("err deserialize:", err)
+					}
+					reload = true
+				}
+			case err, ok := <-watcher.Errors:
+				if !ok {
+					return
+				}
+				log.Println("error:", err)
+			}
+		}
+	}()
+
+	err = watcher.Add(fname)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	ebiten.SetFullscreen(true)
 	ebiten.SetVsyncEnabled(false) // TODO: remove
 	ebiten.SetWindowSize(logic.ScreenWidth, logic.ScreenHeight)
 	ebiten.SetMaxTPS(logic.TPS)
-	ebiten.SetCursorMode(ebiten.CursorModeCaptured)
+	ebiten.SetCursorMode(ebiten.CursorModeCaptured) // TODO: reset
 	// (broken) go get github.com/hajimehoshi/ebiten/v2@1c09ec5e44727a0c38b605552d93e4d470a128ab
 	// (stable) v2.5.0-alpha.12.0.20230228174701-7c0fbce0cfd8
 	if err := ebiten.RunGame(New()); err != nil {

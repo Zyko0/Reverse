@@ -30,6 +30,16 @@ var (
 	maxZoom = math.Log(7)
 )
 
+func sign(n float64) float64 {
+	if n == 0 {
+		return 0
+	}
+	if n > 0 {
+		return 1
+	}
+	return -1
+}
+
 func (c *Camera) Update() {
 	const (
 		zoomSens      = 0.05
@@ -53,6 +63,7 @@ func (c *Camera) Update() {
 	}
 	// Zoom
 	_, y := ebiten.Wheel()
+	y = sign(y)
 	c.zoomValue += y * zoomSens
 	if c.zoomValue < 0 {
 		c.zoomValue = 0

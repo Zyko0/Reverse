@@ -20,3 +20,7 @@ func NewAgent0() *Agent0 {
 func (a0 *Agent0) Update(env *Env) {
 
 }
+
+func (a0 *Agent0) HasAbility(ability Ability) bool {
+	return false
+}

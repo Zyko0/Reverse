@@ -6,6 +6,7 @@ require github.com/hajimehoshi/ebiten/v2 v2.5.0-alpha.12.0.20230228174701-7c0fbc
 
 require (
 	github.com/ebitengine/purego v0.2.0 // indirect
+	github.com/fsnotify/fsnotify v1.6.0
 	github.com/go-gl/glfw/v3.3/glfw v0.0.0-20221017161538-93cebf72946b // indirect
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0
 	github.com/jezek/xgb v1.1.0 // indirect

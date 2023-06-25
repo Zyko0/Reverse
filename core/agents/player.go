@@ -48,3 +48,7 @@ func (p *Player) Update(env *Env) {
 		p.Intent = p.Intent.MulN(ms)
 	}
 }
+
+func (p *Player) HasAbility(_ Ability) bool {
+	return false
+}

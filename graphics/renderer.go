@@ -61,8 +61,11 @@ func (r *Renderer) agentStates(a agents.Agent) (float32, float32, float32, float
 	return idle, walk, run, jump
 }
 
-func (r *Renderer) Update() {
+func (r *Renderer) Update(reload bool) {
 	r.drawn = false
+	if reload {
+		r.mapdrawn = false // TODO: tmp map design
+	}
 	r.ticks++
 }
 
@@ -97,6 +100,11 @@ func (r *Renderer) Draw(screen *ebiten.Image, state *State) {
 		pidle, pwalk, prun, pjump := r.agentStates(state.Player)
 		aidle, awalk, arun, ajump := r.agentStates(state.Agent)
 		agentPosition := state.Agent.GetPosition()
+		// Abilities
+		lightsOff := float32(0)
+		if state.Agent.HasAbility(agents.AbilityLightsOff) {
+			lightsOff = 1
+		}
 		// Render scene
 		r.offscreen.DrawTrianglesShader(vertices, indices, assets.SceneShader, &ebiten.DrawTrianglesShaderOptions{
 			Uniforms: map[string]any{
@@ -115,6 +123,7 @@ func (r *Renderer) Draw(screen *ebiten.Image, state *State) {
 				"Zoom":          float32(state.Camera.Zoom * logic.BaseZoom * float64(logic.MapWidth)),
 				"AmbientColors": AmbientColorsByLevel[state.Level],
 				// Player
+				"PlayerAngle":   float32(state.Player.GetAngle()),
 				"PlayerIdle":    pidle,
 				"PlayerWalking": pwalk,
 				"PlayerRunning": prun,
@@ -125,10 +134,13 @@ func (r *Renderer) Draw(screen *ebiten.Image, state *State) {
 					float32(agentPosition.Y),
 					float32(agentPosition.Z) - logic.MapDepth/2,
 				},
+				"AgentAngle":   float32(state.Agent.GetAngle()),
 				"AgentIdle":    aidle,
 				"AgentWalking": awalk,
 				"AgentRunning": arun,
 				"AgentJumping": ajump,
+				// Abilities
+				"LightsOff": lightsOff,
 			},
 			Images: [4]*ebiten.Image{
 				r.heightmap,

@@ -17,11 +17,10 @@ func noZeroSign(v float) float {
 	return sign(sign(v) + 0.5)
 }
 
-func rotate2D(v vec2, a float) vec2 {
+func rotate2D(a float) mat2 {
 	s := sin(a)
 	c := cos(a)
-	m := mat2(c, -s, s, c)
-	return m * v
+	return mat2(c, -s, s, c)
 }
 
 // Rotation matrix around the X axis
@@ -68,16 +67,17 @@ func insideWorldBox(p vec3) bool {
 }
 
 func texture(p, normal vec3, id vec2) vec3 {
-	id = floor(id*255 + 0.5)
+	id = floor(id * 255 + 0.5)
 
 	origin, size := imageSrcRegionOnTexture()
 	ip := floor(p)
-	xoff := floor(hash(floor(ip.xz), 1) * 3.99)
+	aip := abs(ip)
+	xoff := floor(hash(ip.xz, 1) * 3.99)
 	// Texture offset
 	v := vec2(xoff, id.x)
 	// Mod rule
 	if id.y == 1 {
-		v.y -= float(int(ip.x+ip.y+ip.z) % 2) // Why minus? idk
+		v.y += float(int(aip.x+aip.y+aip.z) % 2)
 	}
 	p = fract(p)
 	x := imageSrc1UnsafeAt(origin + (v+p.yz)/4*size).rgb
@@ -286,17 +286,21 @@ var Offset vec3
 var HorizontalAngle float
 var MapSize vec3
 var Zoom float
-var AmbientColors [4]vec3
+var AmbientColors [6]vec3
 
+var PlayerAngle float
 var PlayerIdle float
 var PlayerWalking float
 var PlayerRunning float
 var PlayerJumping float
+var AgentAngle float
 var AgentPosition vec3
 var AgentIdle float
 var AgentWalking float
 var AgentRunning float
 var AgentJumping float
+
+var LightsOff float
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	const ratio = 16. / 9.
@@ -315,11 +319,11 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	aoff.z += 1               // ??
 	// Ray origin
 	ro := vec3(uv.x, MapSize.y, uv.y+MapSize.y)
-	ro.xz = rotate2D(ro.xz, ha)
+	ro.xz = rotate2D(ha) * ro.xz
 	ro += off
 	// Ray direction
 	rd := normalize(vec3(0, -1, -1))
-	rd.xz = rotate2D(rd.xz, ha)
+	rd.xz = rotate2D(ha) * rd.xz
 	// Close the gap with the world bounding box
 	wb := MapSize * vec3(0.501, 1.001, 0.501)
 	boxoff := vec3(0, -MapSize.y, -1)
@@ -377,42 +381,32 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	specular := vec3(1)
 	glossiness := 16.
 	// Lights calculation
-	lights := [5]vec3{
-		/*vec3(-0.5, 0.75, -0.5) * MapSize,
-		vec3(0.5, 0.75, -0.5) * MapSize,
-		vec3(-0.5, 0.75, 0.5) * MapSize,
-		vec3(0.5, 0.75, 0.5) * MapSize,*/
-		/*vec3(-0.75, 1.5, -0.75) * MapSize,
-		vec3(0.75, 1.5, -0.75) * MapSize,
-		vec3(-0.75, 1.5, 0.75) * MapSize,
-		vec3(0.75, 1.5, 0.75) * MapSize,*/
-		vec3(-0.5, 0.6, 0.5) * MapSize,
-		vec3(0.5, 0.6, -0.5) * MapSize,
-		vec3(-0.5, 0.6, -0.5) * MapSize,
-		vec3(0.5, 0.6, 0.5) * MapSize,
-		//vec3(0), vec3(0), vec3(0),
-		off + vec3(0, 0, 0),
+	rot := rotate2D(Time * 0.5)
+	lights := [6]vec3{
+		vec3(0, 0.5, 0).xyz * MapSize,
+		vec3(rot*vec2(-0.5, 0.5), 0.6).xzy * MapSize,
+		vec3(rot*vec2(0.5, -0.5), 0.6).xzy * MapSize,
+		vec3(rot*vec2(-0.5, -0.5), 0.6).xzy * MapSize,
+		vec3(rot*vec2(0.5, 0.5), 0.6).xzy * MapSize,
+		off,
 	}
-	clr := vec3(0)
-	for i := 0; i < 5; i++ {
+	clr := vec3(LightsOff)
+	for i := 0; i < 6; i++ {
+		const intensity = 1. / 6.
+
 		lightpos := lights[i] //vec3(0, 1.1, 0) * MapSize
-		rot := step(float(i), 3)
-		/*lightpos.xz += Offset.xz
-		lightpos.xz = rotate2D(lightpos.xz, rot*ha)
-		lightpos.xz -= Offset.xz*/
-		lightpos.xz = rotate2D(lightpos.xz, rot*Time*0.5)
 		lightdir := normalize(lightpos - p)
 		//return vec4(abs(lightdir), 1.)
-		lightint := 0.2 //0.2
 		tclr := phong(
 			rd, lightdir, normal.xyz, diffuse, AmbientColors[i], specular, glossiness,
-		) * lightint
+		) * intensity
 		// Shadows
 		tclr *= clamp(shadow(p, lightdir, normal), MinShadow, 1)
-		// clr = min(clr, tclr) // TODO: turning lights off ability
-		//shadowv = max(shadowv, clamp(shadow(p, lightdir, normal), MinShadow, 1))
-		//clr += max(tclr, clr/float(i+1))
-		clr += tclr
+		if LightsOff > 0 {
+			clr = min(clr, tclr) // TODO: turning lights off ability
+		} else {
+			clr += tclr
+		}
 	}
 
 	return vec4(clr, 1)

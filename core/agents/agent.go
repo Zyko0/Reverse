@@ -27,6 +27,7 @@ type Agent interface {
 	Update(env *Env)
 
 	GetState() State
+	GetAngle() float64
 	GetPosition() geom.Vec3
 	SetPosition(position geom.Vec3)
 	GetIntent() geom.Vec3
@@ -36,9 +37,12 @@ type Agent interface {
 	SetYVelocity(v float64)
 	GetJumpingTicks() uint64
 	GetHearingRadius() float64
+
+	HasAbility(ability Ability) bool
 }
 
 type base struct {
+	Angle         float64
 	Position      geom.Vec3
 	Intent        geom.Vec3
 	HearingRadius float64
@@ -71,6 +75,10 @@ func (b *base) GetState() State {
 	default:
 		return StateIdle
 	}
+}
+
+func (b *base) GetAngle() float64 {
+	return b.Angle
 }
 
 func (b *base) GetPosition() geom.Vec3 {
