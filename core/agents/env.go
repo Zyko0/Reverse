@@ -6,6 +6,6 @@ import (
 )
 
 type Env struct {
-	Map       level.Map
+	Map       *level.Map
 	LastHeard geom.Vec3
 }

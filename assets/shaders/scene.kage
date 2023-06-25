@@ -67,7 +67,7 @@ func insideWorldBox(p vec3) bool {
 }
 
 func texture(p, normal vec3, id vec2) vec3 {
-	id = floor(id * 255 + 0.5)
+	id = floor(id*255 + 0.5)
 
 	origin, size := imageSrcRegionOnTexture()
 	ip := floor(p)
@@ -108,7 +108,7 @@ func voxel(p vec3) vec4 {
 
 func sdBox(p, b vec3) float {
 	q := abs(p) - b
-	return length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0)
+	return length(max(q, 0)) + min(max(q.x, max(q.y, q.z)), 0)
 }
 
 // https://iquilezles.org/articles/boxfunctions
@@ -128,7 +128,6 @@ func iBox(ro, rd, bb vec3) vec4 {
 	}
 
 	res := vec4(tN, step(tN, t1))
-
 	res.yzw = (vec4(-sign(rd)*res.yzw, 0)).xyz
 
 	return res
@@ -269,16 +268,12 @@ func rayMarch(ro, rd vec3, ms float) (vec4, vec4) {
 
 func shadow(ro, rd, normal vec3) float {
 	res, _ := rayMarch(ro, rd, 2)
-	if res.x > 0 {
-		d := min(res.x, 1)
-		d = d * d * (3 - 2*d)
-		sd := max(dot(normal, rd), 0)
-		sd *= (0.975 + hash(ro.xz, 1)*0.025) // Little dithering to remove banding
-		sd = sd * sd * (3 - 2*sd)
-		return d * sd
-	}
-
-	return 1
+	d := min(res.x, 1)
+	d = d * d * (3 - 2*d)
+	sd := max(dot(normal, rd), 0)
+	sd *= (0.975 + hash(ro.xz, 1)*0.025) // Little dithering to remove banding
+	sd = sd * sd * (3 - 2*sd)
+	return d * sd
 }
 
 var Time float
@@ -325,8 +320,8 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	rd := normalize(vec3(0, -1, -1))
 	rd.xz = rotate2D(ha) * rd.xz
 	// Close the gap with the world bounding box
-	wb := MapSize * vec3(0.501, 1.001, 0.501)
-	boxoff := vec3(0, -MapSize.y, -1)
+	wb := MapSize * vec3(0.501, 1.01, 0.501)
+	boxoff := vec3(0, -MapSize.y*0.5, -1)
 	dbox := sdBox(ro+boxoff, wb)
 	ro += rd * -dbox
 	// Distance calculation
@@ -338,10 +333,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		pos := (ro - off) + rd*ddp.x
 		tuv := pos.xyz * vec3(2, -2, 2)
 		norm := ddp.yzw
-		back := 0.
-		if norm.z < 0. {
-			back = 1 // TODO:
-		}
+		back := step(0, norm.z)
 		player := (1 - back) * sdChar(tuv.xy, 1., PlayerRunning, PlayerWalking, PlayerIdle, PlayerJumping)
 		player += back * sdChar(tuv.xy, -1., PlayerRunning, PlayerWalking, PlayerIdle, PlayerJumping)
 		if d < ddp.x {

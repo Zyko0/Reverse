@@ -26,6 +26,10 @@ func NewGame() *Game {
 }
 
 func (g *Game) Update() {
+	env := &agents.Env{
+		Map:       g.Level,
+		LastHeard: g.Player.Position,
+	}
 	// Player
 	g.Player.Update(nil)
 	pxz := geom.Vec2{
@@ -38,7 +42,7 @@ func (g *Game) Update() {
 		Z: pxz.Y,
 	})
 	// Agent
-	g.Agent.Update(nil)
+	g.Agent.Update(env)
 	intent := g.Agent.GetIntent()
 	g.ResolveCollisions(g.Agent, geom.Vec3{
 		X: intent.X,
