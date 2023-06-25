@@ -1,14 +1,19 @@
 package core
 
 import (
+	"time"
+
 	"github.com/Zyko0/Reverse/assets"
 	"github.com/Zyko0/Reverse/core/agents"
+	"github.com/Zyko0/Reverse/logic"
 	"github.com/Zyko0/Reverse/pkg/geom"
 	"github.com/Zyko0/Reverse/pkg/level"
 )
 
 type Game struct {
-	lvl int
+	ticks     uint64
+	lvl       int
+	lastHeard geom.Vec3
 
 	Level  *level.Map
 	Player *agents.Player
@@ -18,17 +23,21 @@ type Game struct {
 
 func NewGame() *Game {
 	return &Game{
+		lastHeard: level.StartPlayerPosition,
+
 		Level:  assets.Level0,
 		Player: agents.NewPlayer(),
 		Agent:  agents.NewAgent0(),
-		Camera: newCamera(), // TODO: set initial direction
+		Camera: newCamera(),
 	}
 }
 
 func (g *Game) Update() {
 	env := &agents.Env{
-		Map:       g.Level,
-		LastHeard: g.Player.Position,
+		Map:           g.Level,
+		Goal:          level.GoalPosition,
+		LastHeard:     g.Player.Position,
+		TimeRemaining: uint64(g.TimeRemaining()),
 	}
 	// Player
 	g.Player.Update(nil)
@@ -51,8 +60,22 @@ func (g *Game) Update() {
 	})
 	// Camera
 	g.Camera.Update()
+
+	g.ticks++
 }
 
 func (g *Game) GetLevel() int {
 	return g.lvl
+}
+
+func (g *Game) TimeRemaining() time.Duration {
+	if g.ticks > level.LevelsTime[g.lvl] {
+		return 0
+	}
+
+	return (time.Duration(level.LevelsTime[g.lvl]-g.ticks) * time.Second) / logic.TPS
+}
+
+func (g *Game) IsOver() bool {
+	return g.ticks > level.LevelsTime[g.lvl]
 }

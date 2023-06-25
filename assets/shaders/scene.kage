@@ -133,6 +133,19 @@ func iBox(ro, rd, bb vec3) vec4 {
 	return res
 }
 
+// https://iquilezles.org/articles/intersectors/
+func iSphere(ro, rd vec3, r float) float {
+	oc := ro - r
+	b := dot(oc, rd)
+	c := dot(oc, oc) - r*r
+	h := b*b - c
+	if h < 0 {
+		return -1
+	}
+
+	return -b - sqrt(h)
+}
+
 func sdSeg(p, a, b vec2) float {
 	ba := b - a
 	pa := p - a
@@ -202,6 +215,10 @@ func sdChar(p vec2, front, run, walk, idle, jump float) vec4 {
 	}
 
 	return vec4(0)
+}
+
+func sdTaserArea(p vec3) float {
+	return 0
 }
 
 func phong(rd, ldir, normal, clr, amb, specular vec3, glossiness float) vec3 {
@@ -288,6 +305,7 @@ var PlayerIdle float
 var PlayerWalking float
 var PlayerRunning float
 var PlayerJumping float
+var PlayerTasing float
 var AgentAngle float
 var AgentPosition vec3
 var AgentIdle float
@@ -340,7 +358,6 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 			player.rgb *= 0.1
 		}
 		if player.w < 0 {
-			//p = ro +rd*ddp.x // TODO: Camouflage
 			return vec4(player.rgb, 1)
 		}
 	}
@@ -400,6 +417,13 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 			clr += tclr
 		}
 	}
+	// Taser ability
+	const tr = 20
+	taserClr := vec4(0)
+	taserArea := iSphere(ro-off+vec3(tr), rd, tr) * PlayerTasing
+	if taserArea > 0 && d >= taserArea {
+		taserClr = vec4(vec3(0.5, 0, 0), 1) * 0.1
+	}
 
-	return vec4(clr, 1)
+	return vec4(clr, 1) + taserClr
 }

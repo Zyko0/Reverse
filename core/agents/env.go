@@ -6,6 +6,8 @@ import (
 )
 
 type Env struct {
-	Map       *level.Map
-	LastHeard geom.Vec3
+	Map           *level.Map
+	Goal          geom.Vec3
+	LastHeard     geom.Vec3
+	TimeRemaining uint64
 }

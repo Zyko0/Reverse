@@ -7,11 +7,14 @@ import (
 
 type Player struct {
 	base
+
+	tasingTicks uint64
+	tasingCD    uint64
 }
 
 func NewPlayer() *Player {
 	return &Player{
-		base{
+		base: base{
 			Grounded: true,
 			Position: level.StartAgentPosition,
 		},
@@ -20,6 +23,16 @@ func NewPlayer() *Player {
 
 func (p *Player) Update(env *Env) {
 	p.base.update()
+
+	if p.tasingCD > 0 {
+		p.tasingCD--
+	}
+	if p.tasingTicks > 0 {
+		p.tasingTicks--
+		if p.tasingTicks == 0 {
+			p.tasingCD = TasingCooldown
+		}
+	}
 
 	if ebiten.IsKeyPressed(ebiten.KeyW) {
 		p.Intent.Z += 1
@@ -37,6 +50,9 @@ func (p *Player) Update(env *Env) {
 		p.JumpingTicks = JumpingTicks
 		p.Grounded = false
 	}
+	if ebiten.IsKeyPressed(ebiten.KeyE) && p.tasingTicks == 0 && p.tasingCD == 0 {
+		p.tasingTicks = TasingTicks
+	}
 
 	p.Running = ebiten.IsKeyPressed(ebiten.KeyShift)
 	ms := AgentDefaultMS // TODO: make this better
@@ -49,6 +65,6 @@ func (p *Player) Update(env *Env) {
 	}
 }
 
-func (p *Player) HasAbility(_ Ability) bool {
-	return false
+func (p *Player) HasAbility(ability Ability) bool {
+	return ability == AbilityTasing && p.tasingTicks > 0
 }

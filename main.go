@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"image/color"
 	"log"
 	"os"
 
@@ -10,9 +11,11 @@ import (
 	"github.com/Zyko0/Reverse/core"
 	"github.com/Zyko0/Reverse/graphics"
 	"github.com/Zyko0/Reverse/logic"
+	"github.com/Zyko0/Reverse/pkg/xfmt"
 	"github.com/fsnotify/fsnotify"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	"github.com/hajimehoshi/ebiten/v2/text"
 )
 
 type Game struct {
@@ -55,6 +58,14 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		Player: g.game.Player,
 		Agent:  g.game.Agent,
 	})
+	// UI
+	// Remaining time
+	timeTxt := xfmt.Duration(g.game.TimeRemaining())
+	rect := text.BoundString(assets.MapGenFontFace, timeTxt)
+	text.Draw(screen, timeTxt, assets.MapGenFontFace,
+		logic.ScreenWidth/2-rect.Dx()/2, 36,
+		color.White,
+	)
 	// Debug
 	ebitenutil.DebugPrint(
 		screen,

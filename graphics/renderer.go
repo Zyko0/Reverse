@@ -98,6 +98,10 @@ func (r *Renderer) Draw(screen *ebiten.Image, state *State) {
 		r.offscreen.Clear()
 		// Agents states
 		pidle, pwalk, prun, pjump := r.agentStates(state.Player)
+		ptasing := float32(0)
+		if state.Player.HasAbility(agents.AbilityTasing) {
+			ptasing = 1
+		}
 		aidle, awalk, arun, ajump := r.agentStates(state.Agent)
 		agentPosition := state.Agent.GetPosition()
 		// Abilities
@@ -128,6 +132,7 @@ func (r *Renderer) Draw(screen *ebiten.Image, state *State) {
 				"PlayerWalking": pwalk,
 				"PlayerRunning": prun,
 				"PlayerJumping": pjump,
+				"PlayerTasing":  ptasing,
 				// Agent
 				"AgentPosition": []float32{
 					float32(agentPosition.X) - logic.MapWidth/2,
