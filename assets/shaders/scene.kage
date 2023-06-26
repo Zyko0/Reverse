@@ -58,9 +58,8 @@ func rotateZ(a float) mat3 {
 
 func insideWorldBox(p vec3) bool {
 	block := floor(p)
-	oow := step(abs(block.x), MapSize.x/2)
-	oow *= step(0, p.y)
-	oow *= step(p.y, MapSize.y)
+	oow := step(0, p.y)
+	oow *= step(abs(block.x), MapSize.x/2)
 	oow *= step(abs(block.z), MapSize.z/2)
 
 	return oow > 0
@@ -96,7 +95,6 @@ func voxel(p vec3) vec4 {
 
 	voxel := floor(p)
 	uv := (voxel.xz + MapSize.xz/2) / (MapSize.xz)
-	uv.y = 1 - uv.y
 	origin, size := imageSrcRegionOnTexture()
 	data := imageSrc0UnsafeAt(uv*size + origin)
 	height := data.r
@@ -217,8 +215,23 @@ func sdChar(p vec2, front, run, walk, idle, jump float) vec4 {
 	return vec4(0)
 }
 
-func sdTaserArea(p vec3) float {
-	return 0
+func starField(uv vec2, angle float) vec4 {
+	d := 0.
+	for i := 0.; i < 4.; i++ {
+		sc := (4 - i)
+		angle := mod(angle*((i+1)/16), TwoPi)
+		srot := rotate2D(angle)
+		tuv := uv * 32 * sc
+		tuv = srot * tuv
+		iuv := floor(tuv)
+		h := hash(iuv, 1)
+		hv := (1 - h) / 0.01 * step(0.99, h)         // sc
+		td := length(tuv-iuv-0.5) - max(0.1*hv, 0.1) //sc*hv
+		td = step(td, 0) * hv
+		d = max(d, td)
+	}
+
+	return vec4(vec3(d), 1)
 }
 
 func phong(rd, ldir, normal, clr, amb, specular vec3, glossiness float) vec3 {
@@ -229,18 +242,9 @@ func phong(rd, ldir, normal, clr, amb, specular vec3, glossiness float) vec3 {
 	// diffuse
 	diffuse := clr
 
-	// specular
-	/*hwdir := normalize(ldir + normal)
-	specular = specular * pow(max(dot(normal, hwdir), 0.), glossiness)*/
-	// specular
 	dotRV := dot(reflect(ldir, normal), -rd)
-	//hway := normalize(-rd + ldir)
-	//dotRV = dot(hway, normal)
-	//dotRV = max(dotRV, 0)
-	//specular = specular * pow(dotRV, glossiness) * 256.
-	specular = specular * pow(dotRV, 64) //* 0.5
-	specular = clamp(specular, 0, 1)     //*0.0
-	//specular = clamp(specular, 0, 1)
+	specular = specular * pow(dotRV, 64)
+	specular = clamp(specular, 0, 1)
 
 	return ambient + diffuse + specular
 }
@@ -260,8 +264,8 @@ func rayMarch(ro, rd vec3, ms float) (vec4, vec4) {
 	mm := vec3(0)
 	vox := vec4(0)
 	for i := 0.; i < MaxSteps; i++ {
-		// If outside world bounding box
-		if !insideWorldBox(p / 4) { // TODO: fix this
+		// If under the map
+		if step(0, p.y) == 0 {
 			break
 		}
 
@@ -298,6 +302,8 @@ var Offset vec3
 var HorizontalAngle float
 var MapSize vec3
 var Zoom float
+var TaseColor vec3
+var TaseRadius float
 var AmbientColors [6]vec3
 
 var PlayerAngle float
@@ -323,25 +329,25 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	uv *= (MapSize.xz)
 	uv /= Zoom
 	uv.y /= ratio
-	// Hack: 0 and Pi angle glitching
-	ha := noZeroSign(HorizontalAngle) * min(max(abs(HorizontalAngle), 0.001), TwoPi-0.001)
-	// Note: need to revert offset z, idk why
-	off := Offset.xyz * vec3(1, 1, -1)
-	off.z += 1                // :)
-	aoff := AgentPosition.xyz //* vec3(1, 1, -1)
-	aoff.z += 1               // ??
+	// Hack: 0 and 2Pi angle glitching
+	ha := HorizontalAngle
+	ha = -noZeroSign(ha)*min(max(abs(ha), 0.001), TwoPi-0.001) + Pi
+	off := Offset.xyz
+	aoff := AgentPosition.xyz
+	rot := rotate2D(ha)
 	// Ray origin
 	ro := vec3(uv.x, MapSize.y, uv.y+MapSize.y)
-	ro.xz = rotate2D(ha) * ro.xz
+	ro.xz = rot * ro.xz
 	ro += off
 	// Ray direction
 	rd := normalize(vec3(0, -1, -1))
-	rd.xz = rotate2D(ha) * rd.xz
+	rd.xz = rot * rd.xz
 	// Close the gap with the world bounding box
-	wb := MapSize * vec3(0.501, 1.01, 0.501)
-	boxoff := vec3(0, -MapSize.y*0.5, -1)
-	dbox := sdBox(ro+boxoff, wb)
-	ro += rd * -dbox
+	wb := MapSize * vec3(1.01)
+	boxoff := vec3(0, -wb.y*0.5, -wb.y)
+	boxoff.xz = rot * boxoff.xz
+	dbox := sdBox(ro-boxoff, wb)
+	ro += rd * dbox
 	// Distance calculation
 	res, vox := rayMarch(ro, rd, 1024)
 	d, normal := res.x, res.yzw
@@ -379,18 +385,18 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		}
 	}
 	// If still outside world box
-	if sdBox(p+boxoff, wb) > 0 || d < 0 {
-		// TODO: Star field?
-		discard()
-		return
+	if sdBox(p-boxoff, wb) > 0 || d < 0 {
+		uv := (texCoord-origin)/size*2 - 1
+		uv.y /= ratio
+		return starField(uv, ha)
 	}
-	// Texture color calculation TODO: tbd
+	// Color
 	diffuse := texture(p, normal, vox.yz) // vec3(0.5, 0, 1) //
 	//return vec4(diffuse, 1.)              // TODO: texture debug
 	specular := vec3(1)
 	glossiness := 16.
 	// Lights calculation
-	rot := rotate2D(Time * 0.5)
+	rot = rotate2D(Time * 0.5)
 	lights := [6]vec3{
 		vec3(0, 0.5, 0).xyz * MapSize,
 		vec3(rot*vec2(-0.5, 0.5), 0.6).xzy * MapSize,
@@ -418,11 +424,10 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		}
 	}
 	// Taser ability
-	const tr = 20
 	taserClr := vec4(0)
-	taserArea := iSphere(ro-off+vec3(tr), rd, tr) * PlayerTasing
+	taserArea := iSphere(ro-off+vec3(TaseRadius), rd, TaseRadius) * PlayerTasing
 	if taserArea > 0 && d >= taserArea {
-		taserClr = vec4(vec3(0.5, 0, 0), 1) * 0.1
+		taserClr = vec4(TaseColor, 1) * 0.1
 	}
 
 	return vec4(clr, 1) + taserClr

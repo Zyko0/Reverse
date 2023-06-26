@@ -16,7 +16,7 @@ func NewPlayer() *Player {
 	return &Player{
 		base: base{
 			Grounded: true,
-			Position: level.StartAgentPosition,
+			Position: level.StartPlayerPosition,
 		},
 	}
 }
@@ -61,6 +61,7 @@ func (p *Player) Update(env *Env) {
 	}
 	if !p.Intent.Zero() {
 		p.Intent = p.Intent.Normalize()
+		p.Intent.X = -p.Intent.X
 		p.Intent = p.Intent.MulN(ms)
 	}
 }

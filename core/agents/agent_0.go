@@ -10,7 +10,7 @@ type Agent0 struct {
 
 func NewAgent0() *Agent0 {
 	return &Agent0{
-		base{
+		base: base{
 			Position: level.StartAgentPosition,
 			Grounded: true,
 		},

@@ -10,9 +10,17 @@ import (
 	"github.com/Zyko0/Reverse/pkg/level"
 )
 
+type GameStatus = byte
+
+const (
+	GameStatusDefeat GameStatus = iota
+	GameStatusVictory
+)
+
 type Game struct {
 	ticks     uint64
 	lvl       int
+	status    GameStatus
 	lastHeard geom.Vec3
 
 	Level  *level.Map
@@ -50,6 +58,15 @@ func (g *Game) Update() {
 		Y: 0,
 		Z: pxz.Y,
 	})
+	// Check if tasing and if it hits
+	if g.Player.HasAbility(agents.AbilityTasing) {
+		tased := g.Level.CastRay(g.Player.Position, g.Agent.GetPosition(), agents.TasingRadius)
+		if tased {
+			g.status = GameStatusVictory
+		}
+		// TODO: play success sfx
+		// TODO: play failing sfx
+	}
 	// Agent
 	g.Agent.Update(env)
 	intent := g.Agent.GetIntent()
@@ -68,6 +85,10 @@ func (g *Game) GetLevel() int {
 	return g.lvl
 }
 
+func (g *Game) Status() GameStatus {
+	return g.status
+}
+
 func (g *Game) TimeRemaining() time.Duration {
 	if g.ticks > level.LevelsTime[g.lvl] {
 		return 0
@@ -77,5 +98,5 @@ func (g *Game) TimeRemaining() time.Duration {
 }
 
 func (g *Game) IsOver() bool {
-	return g.ticks > level.LevelsTime[g.lvl]
+	return g.ticks > level.LevelsTime[g.lvl] || g.status == GameStatusVictory
 }

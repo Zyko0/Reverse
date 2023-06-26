@@ -20,11 +20,12 @@ type Renderer struct {
 }
 
 type State struct {
-	Level  int
-	Map    *level.Map
-	Camera *core.Camera
-	Player *agents.Player
-	Agent  agents.Agent
+	Level      int
+	Map        *level.Map
+	Camera     *core.Camera
+	Player     *agents.Player
+	Agent      agents.Agent
+	GameStatus core.GameStatus
 }
 
 func NewRenderer() *Renderer {
@@ -102,6 +103,11 @@ func (r *Renderer) Draw(screen *ebiten.Image, state *State) {
 		if state.Player.HasAbility(agents.AbilityTasing) {
 			ptasing = 1
 		}
+		tasingClr := []float32{1, 0, 0}
+		if state.GameStatus == core.GameStatusVictory {
+			ptasing = 1
+			tasingClr = []float32{0, 0, 1}
+		}
 		aidle, awalk, arun, ajump := r.agentStates(state.Agent)
 		agentPosition := state.Agent.GetPosition()
 		// Abilities
@@ -125,6 +131,8 @@ func (r *Renderer) Draw(screen *ebiten.Image, state *State) {
 					logic.MapDepth,
 				},
 				"Zoom":          float32(state.Camera.Zoom * logic.BaseZoom * float64(logic.MapWidth)),
+				"TaseColor":     tasingClr,
+				"TaseRadius":    float32(agents.TasingRadius),
 				"AmbientColors": AmbientColorsByLevel[state.Level],
 				// Player
 				"PlayerAngle":   float32(state.Player.GetAngle()),
@@ -150,6 +158,38 @@ func (r *Renderer) Draw(screen *ebiten.Image, state *State) {
 			Images: [4]*ebiten.Image{
 				r.heightmap,
 				SheetImage,
+			},
+		})
+		// Render minimap
+		const minimapSize = 256
+		vertices, indices = AppendQuadVerticesIndices(
+			vertices[:0], indices[:0], 0, &QuadOpts{
+				DstX:      logic.ScreenWidth - minimapSize,
+				DstY:      0,
+				DstWidth:  minimapSize,
+				DstHeight: minimapSize,
+				SrcWidth:  minimapSize,
+				SrcHeight: minimapSize,
+			},
+		)
+		r.offscreen.DrawTrianglesShader(vertices, indices, assets.MinimapShader, &ebiten.DrawTrianglesShaderOptions{
+			Images: [4]*ebiten.Image{
+				r.heightmap,
+			},
+			Uniforms: map[string]any{
+				"MapSize": []float32{
+					logic.MapWidth, logic.MapDepth,
+				},
+				"PlayerPosition": []float32{
+					float32(state.Player.Position.X),
+					float32(state.Player.Position.Z),
+				},
+				"PlayerSignal": float32(0),
+				"AgentPosition": []float32{
+					float32(agentPosition.X),
+					float32(agentPosition.Z),
+				},
+				"AgentSignal": float32(0),
 			},
 		})
 		// Mark frame as drawn for this tick

@@ -52,11 +52,12 @@ func (g *Game) Update() error {
 func (g *Game) Draw(screen *ebiten.Image) {
 	// Render game
 	g.renderer.Draw(screen, &graphics.State{
-		Level:  g.game.GetLevel(),
-		Map:    g.game.Level,
-		Camera: g.game.Camera,
-		Player: g.game.Player,
-		Agent:  g.game.Agent,
+		Level:      g.game.GetLevel(),
+		Map:        g.game.Level,
+		Camera:     g.game.Camera,
+		Player:     g.game.Player,
+		Agent:      g.game.Agent,
+		GameStatus: g.game.Status(),
 	})
 	// UI
 	// Remaining time

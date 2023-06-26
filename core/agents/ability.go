@@ -13,4 +13,5 @@ const (
 const (
 	TasingTicks    = logic.TPS
 	TasingCooldown = logic.TPS * 5
+	TasingRadius   = 10
 )

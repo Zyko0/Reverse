@@ -54,6 +54,12 @@ func (v Vec3) Normalize() Vec3 {
 	return v
 }
 
+func (v Vec3) DistanceTo(v2 Vec3) float64 {
+	d := (v2.X-v.X)*(v2.X-v.X) + (v2.Y-v.Y)*(v2.Y-v.Y) + (v2.Z-v.Z)*(v2.Z-v.Z)
+
+	return math.Sqrt(d)
+}
+
 func (v Vec3) String() string {
 	return fmt.Sprintf("%.2f,%.2f,%.2f", v.X, v.Y, v.Z)
 }

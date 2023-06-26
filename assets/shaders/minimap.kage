@@ -1,0 +1,32 @@
+package main
+
+var MapSize vec2
+var PlayerPosition vec2
+var PlayerSignal float
+var AgentPosition vec2
+var AgentSignal float
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	clr := vec3(0)
+	// Height
+	data := imageSrc0UnsafeAt(texCoord)
+	h := data.x * 2.65
+	clr = vec3(1 - h*2)
+
+	origin, size := imageSrcRegionOnTexture()
+	uv := (texCoord - origin) / size
+	uv.xy = 1 - uv.xy // Reverse for convenience (not the theme)
+	uv = uv * MapSize
+	// Agents
+	const ar = 5
+	d := length(uv-PlayerPosition) - ar
+	if d < 0 {
+		clr = vec3(1, 0, 0)
+	}
+	d = length(uv-AgentPosition) - ar
+	if d < 0 {
+		clr = vec3(0, 0, 1)
+	}
+
+	return vec4(clr, 1)
+}

@@ -16,6 +16,10 @@ var (
 	mapShaderSrc []byte
 	MapShader    *ebiten.Shader
 
+	//go:embed shaders/minimap.kage
+	minimapShaderSrc []byte
+	MinimapShader    *ebiten.Shader
+
 	//go:embed shaders/character.kage
 	charShaderSrc []byte
 	CharShader    *ebiten.Shader
@@ -30,6 +34,11 @@ func init() {
 	}
 
 	MapShader, err = ebiten.NewShader(mapShaderSrc)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	MinimapShader, err = ebiten.NewShader(minimapShaderSrc)
 	if err != nil {
 		log.Fatal(err)
 	}
