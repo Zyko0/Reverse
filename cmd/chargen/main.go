@@ -11,7 +11,6 @@ import (
 	"github.com/Zyko0/Reverse/logic"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
-	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
 
 type App struct {
@@ -30,18 +29,10 @@ func New() *App {
 	}
 }
 
-func (g *App) Save() {
-
-}
-
 func (g *App) Update() error {
 	// Quit
 	if ebiten.IsKeyPressed(ebiten.KeyEscape) {
 		return errors.New("quit")
-	}
-	// Save
-	if inpututil.IsKeyJustPressed(ebiten.KeyS) {
-		g.Save()
 	}
 
 	// Side
@@ -68,6 +59,12 @@ func (g *App) Update() error {
 	return nil
 }
 
+const (
+	EyesModifiersNone float32 = iota
+	EyesModifiersJoyful
+	EyesModifiersAngry
+)
+
 func (g *App) Draw(screen *ebiten.Image) {
 	const size = 512
 
@@ -86,11 +83,13 @@ func (g *App) Draw(screen *ebiten.Image) {
 	)
 	screen.DrawTrianglesShader(vertices, indices, assets.CharShader, &ebiten.DrawTrianglesShaderOptions{
 		Uniforms: map[string]any{
-			"Time":    float64(g.ticks) / logic.TPS,
-			"Idle":    0.,
-			"Walking": 1.,
-			"Running": 0.,
-			"Jumping": g.jumping,
+			"Time":       float64(g.ticks) / logic.TPS,
+			"Idle":       0.,
+			"Walking":    1.,
+			"Running":    0.,
+			"Jumping":    g.jumping,
+			"AgentColor": []float32{0.5, 0.25, 1},
+			"Eyes":       EyesModifiersAngry,
 		},
 	})
 	// Debug
@@ -115,5 +114,4 @@ func main() {
 	if err := ebiten.RunGame(New()); err != nil {
 		fmt.Println("err:", err)
 	}
-
 }

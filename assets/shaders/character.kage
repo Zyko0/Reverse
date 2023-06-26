@@ -13,7 +13,6 @@ func hash(p vec2, seed float) float {
 	return fract(sin(dot(p, vec2(12.9898, 4.1414)*seed)) * 43758.5453)
 }
 
-
 var Time float
 
 func sdSeg(p, a, b vec2) float {
@@ -34,6 +33,12 @@ func sdCircle(p vec2, r float) float {
 	return length(p) - r
 }
 
+const (
+	EyesModifiersNone   = 0.5
+	EyesModifiersJoyful = 1.5
+	EyesModifiersAngry  = 2.5
+)
+
 func sdChar(p vec2, front float) vec4 {
 	// State animations
 	clrc := 1. - step(front, 0.)*0.5
@@ -51,6 +56,19 @@ func sdChar(p vec2, front float) vec4 {
 	// Eyes
 	d := sdCircle((p+vec2(-0.075, 0.4))/vec2(1, 2-blink), 0.1)
 	d = min(d, sdCircle((p+vec2(-0.325, 0.4))/vec2(1, 2-blink), 0.1))
+	// Eyes modifiers
+	if Eyes < EyesModifiersNone {
+	} else if Eyes < EyesModifiersJoyful {
+		d = max(d, -min(
+			sdCircle(p+vec2(-0.075, 0.275), 0.15),
+			sdCircle(p+vec2(-0.325, 0.275), 0.15),
+		))
+	} else if Eyes < EyesModifiersAngry {
+		d = max(d, -min(
+			sdCircle(p+vec2(-0.075, 0.55), 0.15),
+			sdCircle(p+vec2(-0.325, 0.55), 0.15),
+		))
+	}
 	d *= step(0, front)
 	if d < 0 {
 		return vec4(vec3(0), d)
@@ -58,7 +76,7 @@ func sdChar(p vec2, front float) vec4 {
 	// Head
 	d = sdBox(p+vec2(0, 0.45), vec2(0.2, 0.1)) - 0.25
 	if d < 0 {
-		return vec4(vec3(1)*clrc, d)
+		return vec4(AgentColor*abs(d*4)*clrc, d)
 	}
 
 	const stickWidth = 0.05
@@ -81,7 +99,7 @@ func sdChar(p vec2, front float) vec4 {
 	d = min(d, sdSeg(p, vec2(0, 0.35), vec2((0.2-rlo), 0.6+rlo-jumpoffy))-stickWidth)
 	d = min(d, sdSeg(p, vec2((0.2-rlo), 0.6+rlo-jumpoffy), vec2((0.25-rlo), 0.9+rlo*0.5-jumpoffy))-stickWidth)
 	if d < 0 {
-		return vec4(vec3(1)*clrc, d)
+		return vec4(AgentColor*abs(d*8)*clrc, d)
 	}
 
 	return vec4(0)
@@ -91,12 +109,14 @@ var Idle float
 var Walking float
 var Running float
 var Jumping float
+var AgentColor vec3
+var Eyes float
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	uv := texCoord*2 - 1
 
 	res := sdChar(uv, color.r)
-	if res.w > 0 {
+	if res.w >= 0 {
 		discard()
 		return
 		//return vec4(0, 0, 0, 1)

@@ -135,7 +135,6 @@ func (r *Renderer) Draw(screen *ebiten.Image, state *State) {
 				"TaseRadius":    float32(agents.TasingRadius),
 				"AmbientColors": AmbientColorsByLevel[state.Level],
 				// Player
-				"PlayerAngle":   float32(state.Player.GetAngle()),
 				"PlayerIdle":    pidle,
 				"PlayerWalking": pwalk,
 				"PlayerRunning": prun,
@@ -147,7 +146,8 @@ func (r *Renderer) Draw(screen *ebiten.Image, state *State) {
 					float32(agentPosition.Y),
 					float32(agentPosition.Z) - logic.MapDepth/2,
 				},
-				"AgentAngle":   float32(state.Agent.GetAngle()),
+				"AgentEyes":    AgentEyesByLevel[state.Level],
+				"AgentColor":   AgentColorsByLevel[state.Level],
 				"AgentIdle":    aidle,
 				"AgentWalking": awalk,
 				"AgentRunning": arun,

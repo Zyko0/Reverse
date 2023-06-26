@@ -162,7 +162,13 @@ func sdCircle(p vec2, r float) float {
 	return length(p) - r
 }
 
-func sdChar(p vec2, front, run, walk, idle, jump float) vec4 {
+const (
+	EyesModifiersNone   = 0.5
+	EyesModifiersJoyful = 1.5
+	EyesModifiersAngry  = 2.5
+)
+
+func sdChar(p vec2, front, run, walk, idle, jump, eyes float, clr vec3) vec4 {
 	// State animations
 	clrc := 1. - step(front, 0.)*0.5
 	movement := run + walk*0.5
@@ -178,6 +184,19 @@ func sdChar(p vec2, front, run, walk, idle, jump float) vec4 {
 	// Eyes
 	d := sdCircle((p+vec2(-0.075, 0.4))/vec2(1, 2-blink), 0.1)
 	d = min(d, sdCircle((p+vec2(-0.325, 0.4))/vec2(1, 2-blink), 0.1))
+	// Eyes modifiers
+	if eyes < EyesModifiersNone {
+	} else if eyes < EyesModifiersJoyful {
+		d = max(d, -min(
+			sdCircle(p+vec2(-0.075, 0.275), 0.15),
+			sdCircle(p+vec2(-0.325, 0.275), 0.15),
+		))
+	} else if eyes < EyesModifiersAngry {
+		d = max(d, -min(
+			sdCircle(p+vec2(-0.075, 0.55), 0.15),
+			sdCircle(p+vec2(-0.325, 0.55), 0.15),
+		))
+	}
 	d *= step(0, front)
 	if d < 0 {
 		return vec4(vec3(0), d)
@@ -185,7 +204,7 @@ func sdChar(p vec2, front, run, walk, idle, jump float) vec4 {
 	// Head
 	d = sdBox2D(p+vec2(0, 0.45), vec2(0.2, 0.1)) - 0.25
 	if d < 0 {
-		return vec4(vec3(1)*clrc*abs(d*4), d)
+		return vec4(clr*clrc*abs(d*4), d)
 	}
 
 	const stickWidth = 0.05
@@ -209,7 +228,7 @@ func sdChar(p vec2, front, run, walk, idle, jump float) vec4 {
 	d = min(d, sdSeg(p, vec2(0, 0.35), vec2((0.2-rlo), 0.6+rlo-jumpoffy))-stickWidth)
 	d = min(d, sdSeg(p, vec2((0.2-rlo), 0.6+rlo-jumpoffy), vec2((0.25-rlo), 0.9+rlo*0.5-jumpoffy+offy))-stickWidth)
 	if d < 0 {
-		return vec4(vec3(1)*clrc*abs(d*8), d)
+		return vec4(clr*clrc*abs(d*8), d)
 	}
 
 	return vec4(0)
@@ -306,14 +325,14 @@ var TaseColor vec3
 var TaseRadius float
 var AmbientColors [6]vec3
 
-var PlayerAngle float
 var PlayerIdle float
 var PlayerWalking float
 var PlayerRunning float
 var PlayerJumping float
 var PlayerTasing float
-var AgentAngle float
 var AgentPosition vec3
+var AgentEyes float
+var AgentColor vec3
 var AgentIdle float
 var AgentWalking float
 var AgentRunning float
@@ -358,8 +377,8 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		tuv := pos.xyz * vec3(2, -2, 2)
 		norm := ddp.yzw
 		back := step(0, norm.z)
-		player := (1 - back) * sdChar(tuv.xy, 1., PlayerRunning, PlayerWalking, PlayerIdle, PlayerJumping)
-		player += back * sdChar(tuv.xy, -1., PlayerRunning, PlayerWalking, PlayerIdle, PlayerJumping)
+		player := (1 - back) * sdChar(tuv.xy, 1., PlayerRunning, PlayerWalking, PlayerIdle, PlayerJumping, 0, vec3(1))
+		player += back * sdChar(tuv.xy, -1., PlayerRunning, PlayerWalking, PlayerIdle, PlayerJumping, 0, vec3(1))
 		if d < ddp.x {
 			player.rgb *= 0.1
 		}
@@ -376,8 +395,8 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		if norm.z < 0. {
 			back = 1 // TODO:
 		}
-		agent := (1 - back) * sdChar(tuv.xy, 1., AgentRunning, AgentWalking, AgentIdle, AgentJumping)
-		agent += back * sdChar(tuv.xy, -1., AgentRunning, AgentWalking, AgentIdle, AgentJumping)
+		agent := (1 - back) * sdChar(tuv.xy, 1., AgentRunning, AgentWalking, AgentIdle, AgentJumping, AgentEyes, AgentColor)
+		agent += back * sdChar(tuv.xy, -1., AgentRunning, AgentWalking, AgentIdle, AgentJumping, AgentEyes, AgentColor)
 		// Do not display anything if hidden
 		if d >= ddp.x && agent.w < 0 {
 			//p = ro +rd*ddp.x // TODO: Camouflage
