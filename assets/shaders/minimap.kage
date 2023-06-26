@@ -1,5 +1,10 @@
 package main
 
+const (
+	Pi = 3.1415925359
+)
+
+var Time float
 var MapSize vec2
 var PlayerPosition vec2
 var PlayerSignal float
@@ -18,15 +23,31 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	uv.xy = 1 - uv.xy // Reverse for convenience (not the theme)
 	uv = uv * MapSize
 	// Agents
-	const ar = 5
-	d := length(uv-PlayerPosition) - ar
+	const (
+		agentr  = 5
+		signalr = 50
+	)
+
+	oclr := vec4(clr, 1)
+	// Positions
+	d := length(uv-PlayerPosition) - agentr
 	if d < 0 {
-		clr = vec3(1, 0, 0)
+		oclr.rgb = vec3(1, 0, 0)
 	}
-	d = length(uv-AgentPosition) - ar
+	/*d = length(uv-AgentPosition) - agentr
 	if d < 0 {
-		clr = vec3(0, 0, 1)
+		oclr.rgb = vec3(0, 0, 1)
+	}*/
+	// Signal waves
+	sigr := abs(sin(Time*Pi) * signalr)
+	d = length(uv-PlayerPosition) - sigr
+	if step(2.5*PlayerSignal, abs(d)) == 0 {
+		oclr = oclr/2 + vec4(1, 0, 0, 1)
+	}
+	d = length(uv-AgentPosition) - sigr
+	if step(2.5*AgentSignal, abs(d)) == 0 {
+		oclr = oclr/2 + vec4(0, 0, 1, 1)
 	}
 
-	return vec4(clr, 1)
+	return oclr
 }

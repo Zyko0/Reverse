@@ -177,6 +177,7 @@ func (r *Renderer) Draw(screen *ebiten.Image, state *State) {
 				r.heightmap,
 			},
 			Uniforms: map[string]any{
+				"Time": float64(r.ticks) / logic.TPS,
 				"MapSize": []float32{
 					logic.MapWidth, logic.MapDepth,
 				},
@@ -184,12 +185,12 @@ func (r *Renderer) Draw(screen *ebiten.Image, state *State) {
 					float32(state.Player.Position.X),
 					float32(state.Player.Position.Z),
 				},
-				"PlayerSignal": float32(0),
+				"PlayerSignal": float32(1),
 				"AgentPosition": []float32{
 					float32(agentPosition.X),
 					float32(agentPosition.Z),
 				},
-				"AgentSignal": float32(0),
+				"AgentSignal": float32(1),
 			},
 		})
 		// Mark frame as drawn for this tick
