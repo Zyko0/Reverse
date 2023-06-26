@@ -6,6 +6,7 @@ const (
 
 var Time float
 var MapSize vec2
+var GoalPosition vec2
 var PlayerPosition vec2
 var PlayerSignal float
 var AgentPosition vec2
@@ -16,23 +17,27 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	// Height
 	data := imageSrc0UnsafeAt(texCoord)
 	h := data.x * 2.65
-	clr = vec3(1 - h*2)
+	clr = vec3(abs(0.25-h) * 2)
 
 	origin, size := imageSrcRegionOnTexture()
 	uv := (texCoord - origin) / size
-	uv.xy = 1 - uv.xy // Reverse for convenience (not the theme)
+	uv.xy = 1 - uv.xy // Reverse for visual (not the theme)
 	uv = uv * MapSize
 	// Agents
 	const (
-		agentr  = 5
+		posr    = 5
 		signalr = 50
 	)
 
 	oclr := vec4(clr, 1)
 	// Positions
-	d := length(uv-PlayerPosition) - agentr
+	d := length(uv-PlayerPosition) - posr
 	if d < 0 {
 		oclr.rgb = vec3(1, 0, 0)
+	}
+	d = length(uv-GoalPosition) - posr
+	if d < 0 {
+		oclr.rgb = vec3(1, 0.9, 0)
 	}
 	/*d = length(uv-AgentPosition) - agentr
 	if d < 0 {

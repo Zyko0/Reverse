@@ -8,36 +8,6 @@ import (
 	"github.com/Zyko0/Reverse/pkg/geom"
 )
 
-func (g *Game) getNeighbourColumns(x, y, z int) []geom.Vec3 {
-	var neighbours []geom.Vec3
-
-	for xoff := -1; xoff <= 1; xoff++ {
-		nx := x + xoff
-		if nx < 0 || nx > logic.MapWidth {
-			continue
-		}
-		/*for yoff := -1; yoff <= 1.; yoff++ {
-		ny := y+yoff
-		if ny < 0 || ny > logic.MapHeight {
-			continue
-		}*/
-		for zoff := -1; zoff <= 1.; zoff++ {
-			nz := z + zoff
-			if nz < 0 || nz > logic.MapDepth {
-				continue
-			}
-			neighbours = append(neighbours, geom.Vec3{
-				X: float64(x),
-				Y: float64(g.Level.HeightMap[z][x].Height),
-				Z: float64(z),
-			})
-		}
-		//}
-	}
-
-	return neighbours
-}
-
 const (
 	JumpVelocityIncr     = 0.02
 	FallVelocityTerminal = -0.5

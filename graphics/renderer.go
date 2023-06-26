@@ -190,6 +190,10 @@ func (r *Renderer) Draw(screen *ebiten.Image, state *State) {
 				"MapSize": []float32{
 					logic.MapWidth, logic.MapDepth,
 				},
+				"GoalPosition": []float32{
+					float32(level.GoalPosition.X),
+					float32(level.GoalPosition.Z),
+				},
 				"PlayerPosition": []float32{
 					float32(state.Player.Position.X),
 					float32(state.Player.Position.Z),

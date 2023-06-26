@@ -12,6 +12,15 @@ const (
 	HeardForTicks  = logic.TPS * 2
 )
 
+var (
+	jumpDistanceAwarenessByAgent = []int{
+		0: 1,
+		1: 2,
+		2: 3,
+		3: 3,
+	}
+)
+
 type State = byte
 
 const (
