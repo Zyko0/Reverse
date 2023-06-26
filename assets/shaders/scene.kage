@@ -262,8 +262,9 @@ func phong(rd, ldir, normal, clr, amb vec3) vec3 {
 	diffuse := clr
 
 	dotRV := dot(reflect(ldir, normal), -rd)
+	dotRV = clamp(dotRV, 0, 1)
 	specular := vec3(1) * pow(dotRV, 128)
-	specular = clamp(specular, 0, 1)
+	specular = clamp(specular, 0, 1) //* 0.1
 
 	return ambient + diffuse + specular
 }
