@@ -172,6 +172,15 @@ func (r *Renderer) Draw(screen *ebiten.Image, state *State) {
 				SrcHeight: minimapSize,
 			},
 		)
+		// Agent properties
+		psig := float32(0)
+		asig := float32(0)
+		if state.Player.GetHeard() {
+			psig = 1
+		}
+		if state.Agent.GetHeard() {
+			asig = 1
+		}
 		r.offscreen.DrawTrianglesShader(vertices, indices, assets.MinimapShader, &ebiten.DrawTrianglesShaderOptions{
 			Images: [4]*ebiten.Image{
 				r.heightmap,
@@ -185,12 +194,12 @@ func (r *Renderer) Draw(screen *ebiten.Image, state *State) {
 					float32(state.Player.Position.X),
 					float32(state.Player.Position.Z),
 				},
-				"PlayerSignal": float32(1),
+				"PlayerSignal": float32(psig),
 				"AgentPosition": []float32{
 					float32(agentPosition.X),
 					float32(agentPosition.Z),
 				},
-				"AgentSignal": float32(1),
+				"AgentSignal": float32(asig),
 			},
 		})
 		// Mark frame as drawn for this tick

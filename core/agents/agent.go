@@ -6,10 +6,10 @@ import (
 )
 
 const (
-	AgentDefaultMS            = 0.1
-	AgentRunMS                = AgentDefaultMS * 3
-	JumpingTicks              = logic.TPS / 6
-	AgentDefaultHearingRadius = logic.MapWidth * 0.25
+	AgentDefaultMS = 0.1
+	AgentRunMS     = AgentDefaultMS * 3
+	JumpingTicks   = logic.TPS / 6
+	HeardForTicks  = logic.TPS * 2
 )
 
 type State = byte
@@ -36,27 +36,31 @@ type Agent interface {
 	GetYVelocity() float64
 	SetYVelocity(v float64)
 	GetJumpingTicks() uint64
-	GetHearingRadius() float64
+	GetHeard() bool
+	SetHeard()
 
 	HasAbility(ability Ability) bool
 }
 
 type base struct {
-	Angle         float64
-	Position      geom.Vec3
-	Intent        geom.Vec3
-	HearingRadius float64
+	Angle    float64
+	Position geom.Vec3
+	Intent   geom.Vec3
 
-	Grounded     bool
-	YVelocity    float64
-	JumpingTicks uint64
-	Running      bool
+	Grounded      bool
+	YVelocity     float64
+	JumpingTicks  uint64
+	Running       bool
+	HeardForTicks uint64
 }
 
 func (b *base) update() {
 	b.Running = false
 	if b.JumpingTicks > 0 {
 		b.JumpingTicks--
+	}
+	if b.HeardForTicks > 0 {
+		b.HeardForTicks--
 	}
 	b.Intent.X, b.Intent.Y, b.Intent.Z = 0, 0, 0
 }
@@ -113,6 +117,10 @@ func (b *base) GetJumpingTicks() uint64 {
 	return b.JumpingTicks
 }
 
-func (b *base) GetHearingRadius() float64 {
-	return b.HearingRadius
+func (b *base) GetHeard() bool {
+	return b.HeardForTicks > 0 || b.Running
+}
+
+func (b *base) SetHeard() {
+	b.HeardForTicks = HeardForTicks
 }

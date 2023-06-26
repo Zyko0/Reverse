@@ -67,6 +67,7 @@ func (g *Game) Update() {
 		// TODO: play success sfx
 		// TODO: play failing sfx
 	}
+
 	// Agent
 	g.Agent.Update(env)
 	intent := g.Agent.GetIntent()

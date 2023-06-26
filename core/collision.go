@@ -65,6 +65,11 @@ func (g *Game) ResolveCollisions(agent agents.Agent, intent geom.Vec3) {
 	}
 	pos.Y += agent.GetYVelocity()
 	if pos.Y-0.5 < float64(current.Height) && agent.GetJumpingTicks() == 0 {
+		// Make the agent noisy if he reached a big fall speed
+		if agent.GetYVelocity() == FallVelocityTerminal {
+			agent.SetHeard()
+			// TODO: play fall sfx
+		}
 		pos.Y = float64(current.Height) + 0.5
 		agent.SetYVelocity(0)
 		agent.SetGrounded(true)
