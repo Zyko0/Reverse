@@ -41,12 +41,6 @@ func NewGame() *Game {
 }
 
 func (g *Game) Update() {
-	env := &agents.Env{
-		Map:           g.Level,
-		Goal:          level.GoalPosition,
-		LastHeard:     g.Player.Position,
-		TimeRemaining: uint64(g.TimeRemaining()),
-	}
 	// Player
 	g.Player.Update(nil)
 	pxz := geom.Vec2{
@@ -58,6 +52,10 @@ func (g *Game) Update() {
 		Y: 0,
 		Z: pxz.Y,
 	})
+	// Record last heard if player is noisy
+	if g.Player.GetHeard() {
+		g.lastHeard = g.Player.GetPosition()
+	}
 	// Check if tasing and if it hits
 	if g.Player.HasAbility(agents.AbilityTasing) {
 		tased := g.Level.CastRay(g.Player.Position, g.Agent.GetPosition(), agents.TasingRadius)
@@ -69,6 +67,12 @@ func (g *Game) Update() {
 	}
 
 	// Agent
+	env := &agents.Env{
+		Map:           g.Level,
+		Goal:          level.GoalPosition,
+		LastHeard:     g.lastHeard,
+		TimeRemaining: uint64(g.TimeRemaining()),
+	}
 	g.Agent.Update(env)
 	intent := g.Agent.GetIntent()
 	g.ResolveCollisions(g.Agent, geom.Vec3{

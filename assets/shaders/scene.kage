@@ -253,16 +253,16 @@ func starField(uv vec2, angle float) vec4 {
 	return vec4(vec3(d), 1)
 }
 
-func phong(rd, ldir, normal, clr, amb, specular vec3, glossiness float) vec3 {
+func phong(rd, ldir, normal, clr, amb vec3) vec3 {
 	// ambient
-	ambientStrength := 0.5
+	ambientStrength := 0.2
 	ambient := ambientStrength * amb
 
 	// diffuse
 	diffuse := clr
 
 	dotRV := dot(reflect(ldir, normal), -rd)
-	specular = specular * pow(dotRV, 64)
+	specular := vec3(1) * pow(dotRV, 128)
 	specular = clamp(specular, 0, 1)
 
 	return ambient + diffuse + specular
@@ -412,16 +412,14 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	// Color
 	diffuse := texture(p, normal, vox.yz) // vec3(0.5, 0, 1) //
 	//return vec4(diffuse, 1.)              // TODO: texture debug
-	specular := vec3(1)
-	glossiness := 16.
 	// Lights calculation
-	rot = rotate2D(Time * 0.5)
+	rot = rotate2D(Time * 0.25)
 	lights := [6]vec3{
-		vec3(0, 0.5, 0).xyz * MapSize,
-		vec3(rot*vec2(-0.5, 0.5), 0.6).xzy * MapSize,
-		vec3(rot*vec2(0.5, -0.5), 0.6).xzy * MapSize,
-		vec3(rot*vec2(-0.5, -0.5), 0.6).xzy * MapSize,
-		vec3(rot*vec2(0.5, 0.5), 0.6).xzy * MapSize,
+		vec3(0, 0.25, 0).xyz * MapSize,
+		vec3(rot*vec2(-0.5, 0.5), 0.95).xzy * MapSize,
+		vec3(rot*vec2(0.5, -0.5), 0.95).xzy * MapSize,
+		vec3(rot*vec2(-0.5, -0.5), 0.95).xzy * MapSize,
+		vec3(rot*vec2(0.5, 0.5), 0.95).xzy * MapSize,
 		off,
 	}
 	clr := vec3(LightsOff)
@@ -432,8 +430,8 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		lightdir := normalize(lightpos - p)
 		//return vec4(abs(lightdir), 1.)
 		tclr := phong(
-			rd, lightdir, normal.xyz, diffuse, AmbientColors[i], specular, glossiness,
-		) * intensity
+			rd, lightdir, normal.xyz, diffuse, vec3(1),
+		) * intensity * AmbientColors[i]
 		// Shadows
 		tclr *= clamp(shadow(p, lightdir, normal), MinShadow, 1)
 		if LightsOff > 0 {
