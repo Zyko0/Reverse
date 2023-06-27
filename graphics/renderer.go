@@ -21,7 +21,7 @@ type Renderer struct {
 
 type State struct {
 	Level      int
-	Map        *level.Map
+	Map        *level.HMap
 	Camera     *core.Camera
 	Player     *agents.Player
 	Agent      agents.Agent

@@ -10,7 +10,7 @@ import (
 var (
 	//go:embed levels/0.rev
 	level0Src []byte
-	Level0    = &level.Map{}
+	Level0    = &level.HMap{}
 )
 
 func init() {

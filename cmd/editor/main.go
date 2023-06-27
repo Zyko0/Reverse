@@ -46,12 +46,12 @@ type App struct {
 	hovered     geom.Vec2
 	zoom        float64
 
-	lvl *level.Map
+	lvl *level.HMap
 
 	txtImg *ebiten.Image
 }
 
-func New(lvl *level.Map, filename string) *App {
+func New(lvl *level.HMap, filename string) *App {
 	return &App{
 		err:      nil,
 		filename: filename,
@@ -73,6 +73,7 @@ func New(lvl *level.Map, filename string) *App {
 func (g *App) Save() {
 	g.err = nil
 
+	g.lvl.BuildStaticNeighbours()
 	data, err := g.lvl.Serialize()
 	if err != nil {
 		g.err = err
@@ -206,26 +207,26 @@ func (g *App) Update() error {
 				for ax := area.Min.X; ax <= area.Max.X; ax++ {
 					c := g.lvl.HeightMap[az][ax]
 					h := c.Height
-					tm := c.TopMaterialID
-					sm := c.SideMaterialID
+					ridx := c.RowIndex
+					rule := c.Rule
 					if hoff == -1 && h > 0 {
 						h -= 1
 					} else if hoff == 1 && h < logic.MapHeight {
 						h += 1
 					}
-					if tmoff == -1 && tm > 0 {
-						tm -= 1
-					} else if tmoff == 1 && tm < 255 {
-						tm += 1
+					if tmoff == -1 && ridx > 0 {
+						ridx -= 1
+					} else if tmoff == 1 && ridx < 255 {
+						ridx += 1
 					}
-					if smoff == -1 && sm > 0 {
-						sm -= 1
-					} else if smoff == 1 && sm < 255 {
-						sm += 1
+					if smoff == -1 && rule > 0 {
+						rule -= 1
+					} else if smoff == 1 && rule < 255 {
+						rule += 1
 					}
 					g.lvl.HeightMap[az][ax].Height = h
-					g.lvl.HeightMap[az][ax].TopMaterialID = tm
-					g.lvl.HeightMap[az][ax].SideMaterialID = sm
+					g.lvl.HeightMap[az][ax].RowIndex = ridx
+					g.lvl.HeightMap[az][ax].Rule = rule
 				}
 			}
 		}
@@ -328,7 +329,7 @@ func (g *App) Draw(screen *ebiten.Image) {
 			// Text
 			const txtScale = 1. / 3.
 			str := fmt.Sprintf("H:%d\nT:%d\nS:%d",
-				block.Height, block.TopMaterialID, block.SideMaterialID,
+				block.Height, block.RowIndex, block.Rule,
 			)
 			rect := text.BoundString(assets.MapGenFontFace, str)
 			opts := &ebiten.DrawImageOptions{
@@ -392,7 +393,7 @@ func main() {
 		}
 	}
 
-	lvl := &level.Map{}
+	lvl := &level.HMap{}
 	data := []byte{}
 	if f != nil {
 		data, err = io.ReadAll(f)
@@ -408,9 +409,9 @@ func main() {
 	f.Close()
 	// Initialize the slice if empty, so that there are default value for the editor
 	if len(lvl.HeightMap) == 0 {
-		lvl.HeightMap = make([][]level.Column, logic.MapDepth)
+		lvl.HeightMap = make([][]level.HColumn, logic.MapDepth)
 		for z := 0; z < logic.MapDepth; z++ {
-			lvl.HeightMap[z] = make([]level.Column, logic.MapWidth)
+			lvl.HeightMap[z] = make([]level.HColumn, logic.MapWidth)
 		}
 	}
 

@@ -23,7 +23,7 @@ type Game struct {
 	status    GameStatus
 	lastHeard geom.Vec3
 
-	Level  *level.Map
+	Level  *level.HMap
 	Player *agents.Player
 	Agent  agents.Agent
 	Camera *Camera

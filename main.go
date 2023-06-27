@@ -4,11 +4,16 @@ import (
 	"errors"
 	"fmt"
 	"image/color"
+	"log"
+	"os"
+	"runtime/pprof"
+	"time"
 
 	"github.com/Zyko0/Reverse/assets"
 	"github.com/Zyko0/Reverse/core"
 	"github.com/Zyko0/Reverse/graphics"
 	"github.com/Zyko0/Reverse/logic"
+	"github.com/Zyko0/Reverse/pkg/level"
 	"github.com/Zyko0/Reverse/pkg/xfmt"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -82,7 +87,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 func main() {
-	/*f, err := os.Create("beat.prof")
+	f, err := os.Create("beat.prof")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -92,7 +97,18 @@ func main() {
 		fmt.Println("couldn't profile:", err)
 		return
 	}
-	defer pprof.StopCPUProfile()*/
+	defer pprof.StopCPUProfile()
+
+	//fmt.Println("max", geom.Vec3{X: 255, Y: logic.MapHeight, Z: 255}.AsUHashXZ())
+
+	for i := 0; i < 100; i++ {
+		now := time.Now()
+		pos := level.StartAgentPosition
+		pos.Y = 1
+		p, _ := assets.Level0.BFS(pos, level.GoalPosition, 1, false)
+		fmt.Println("len", len(p), "time", time.Since(now))
+	}
+	//return
 	// TODO: remove below
 	/*watcher, err := fsnotify.NewWatcher()
 	if err != nil {

@@ -6,10 +6,11 @@ import (
 )
 
 const (
-	AgentDefaultMS = 0.1
-	AgentRunMS     = AgentDefaultMS * 3
-	JumpingTicks   = logic.TPS / 6
-	HeardForTicks  = logic.TPS * 2
+	AgentDefaultMS       = 0.1
+	AgentRunMSMultiplier = 3
+	AgentRunMS           = AgentDefaultMS * AgentRunMSMultiplier
+	JumpingTicks         = logic.TPS / 6
+	HeardForTicks        = logic.TPS * 2
 )
 
 var (

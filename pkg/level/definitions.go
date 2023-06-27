@@ -9,7 +9,7 @@ import (
 var (
 	GoalPosition = geom.Vec3{
 		X: logic.MapWidth / 2,
-		Y: 2,
+		Y: 1,
 		Z: logic.MapDepth * 0.05,
 	}
 	StartPlayerPosition = geom.Vec3{
@@ -28,5 +28,8 @@ var (
 var (
 	LevelsTime = []uint64{
 		0: logic.TPS * 60 * 2,
+		1: logic.TPS * 60 * 2,
+		2: logic.TPS * 60 * 2,
+		3: logic.TPS * 60 * 5,
 	}
 )
