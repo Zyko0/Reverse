@@ -3,9 +3,7 @@ package level
 import (
 	"bytes"
 	"encoding/gob"
-	"fmt"
 	"math"
-	"time"
 
 	"github.com/Zyko0/Reverse/logic"
 	"github.com/Zyko0/Reverse/pkg/geom"
@@ -18,11 +16,8 @@ type HColumn struct {
 }
 
 type HMap struct {
-	HeightMap      [][]HColumn
-	Neighbours1    [][]uint16
-	Neighbours2    [][]uint16
-	Neighbours3    [][]uint16
-	Neighbours3Run [][]uint16
+	HeightMap   [][]HColumn
+	Neighbours1 [][]uint16
 }
 
 func (hm *HMap) At(x, z int) HColumn {
@@ -45,6 +40,13 @@ func (hm *HMap) CompileBytes() []byte {
 	}
 
 	return pixels
+}
+
+func sign(n int) int {
+	if n < 0 {
+		return -1
+	}
+	return 1
 }
 
 func (hm *HMap) GetReachableNeighbours(x, y, z, agility int, allowRun bool) []geom.Vec3 {
@@ -73,11 +75,26 @@ func (hm *HMap) GetReachableNeighbours(x, y, z, agility int, allowRun bool) []ge
 			if h > y && h-y > 1 {
 				continue
 			}
-			ns = append(ns, geom.Vec3{
+			v := geom.Vec3{
 				X: float64(nx),
 				Y: float64(h),
 				Z: float64(nz),
-			})
+			}
+			// Check if diagonal is accessible
+			if xoff != 0 && zoff != 0 {
+				h0, h1 := y-1, y-1
+				if tz := z + sign(zoff); tz >= 0 && tz < logic.MapDepth {
+					h0 = int(hm.HeightMap[tz][x].Height)
+				}
+				if tx := x + sign(xoff); tx >= 0 && tx < logic.MapWidth {
+					h1 = int(hm.HeightMap[z][tx].Height)
+				}
+				if (h0 < y || h0-y < 2) && (h1 < y || h1-y < 2) {
+					ns = append(ns, v)
+				}
+			} else {
+				ns = append(ns, v)
+			}
 		}
 	}
 
@@ -105,7 +122,6 @@ func (hm *HMap) Serialize() ([]byte, error) {
 }
 
 func (hm *HMap) getNeighboursHashes(agility int, run bool) [][]uint16 {
-	t := time.Now()
 	neighbours := make([][]uint16, 65536)
 	for x := 0; x < logic.MapWidth; x++ {
 		for z := 0; z < logic.MapDepth; z++ {
@@ -123,16 +139,12 @@ func (hm *HMap) getNeighboursHashes(agility int, run bool) [][]uint16 {
 			neighbours[pos.AsUHashXZ()] = hashes
 		}
 	}
-	fmt.Println("neighbourg init - agility", agility, "run", run, "time", time.Since(t))
 
 	return neighbours
 }
 
 func (hm *HMap) BuildStaticNeighbours() {
 	hm.Neighbours1 = hm.getNeighboursHashes(1, false)
-	//hm.Neighbours2 = hm.getNeighboursHashes(2, false)
-	//hm.Neighbours3 = hm.getNeighboursHashes(3, false)
-	//hm.Neighbours3Run = hm.getNeighboursHashes(3, true)
 }
 
 func (hm *HMap) CastRay(src, dst geom.Vec3, max float64) bool {
@@ -204,12 +216,12 @@ func (hm *HMap) BFS(start, goal geom.Vec3, agility int, allowRun bool) ([]geom.V
 			found = true
 			break
 		}
-		/*for _, next := range neighbours[current] { //lm.GetReachableNeighbours(int(pos.X), int(pos.Y), int(pos.Z), agility, allowRun) {
+		for _, next := range hm.Neighbours1[current] {
 			if c := from[next]; c == nullNodeValue {
 				queue = append(queue, next)
 				from[next] = current
 			}
-		}*/
+		}
 	}
 	if !found {
 		return nil, false
