@@ -43,6 +43,10 @@ func (g *Game) Update() error {
 			return nil
 		}
 	}
+	// Set cursor mode when focused
+	if ebiten.CursorMode() != ebiten.CursorModeCaptured {
+		ebiten.SetCursorMode(ebiten.CursorModeCaptured)
+	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) || g.game.IsOver() && inpututil.IsKeyJustPressed(ebiten.KeyEnter) {
 		g.levelview.Activate()
 		return nil
@@ -142,7 +146,6 @@ func main() {
 	ebiten.SetVsyncEnabled(true)
 	ebiten.SetWindowSize(logic.ScreenWidth, logic.ScreenHeight)
 	ebiten.SetMaxTPS(logic.TPS)
-	ebiten.SetCursorMode(ebiten.CursorModeCaptured)
 	// (broken) go get github.com/hajimehoshi/ebiten/v2@1c09ec5e44727a0c38b605552d93e4d470a128ab
 	// (stable) v2.5.0-alpha.12.0.20230228174701-7c0fbce0cfd8
 	if err := ebiten.RunGameWithOptions(New(), &ebiten.RunGameOptions{

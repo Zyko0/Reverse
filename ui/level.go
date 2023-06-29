@@ -1,7 +1,6 @@
 package ui
 
 import (
-	"fmt"
 	"image/color"
 	"strconv"
 
@@ -9,7 +8,6 @@ import (
 	"github.com/Zyko0/Reverse/graphics"
 	"github.com/Zyko0/Reverse/logic"
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hajimehoshi/ebiten/v2/text"
 )
@@ -286,7 +284,4 @@ func (lv *LevelView) Draw(screen *ebiten.Image) {
 	opts := &ebiten.DrawImageOptions{}
 	opts.GeoM.Translate(float64(lv.mx)-16, float64(lv.my)-16)
 	screen.DrawImage(cursorImg, opts)
-	// Debug
-	cx, cy := ebiten.CursorPosition()
-	ebitenutil.DebugPrint(screen, fmt.Sprintf("cx %d - cy %d - mxy %d %d", cx, cy, lv.mx, lv.my))
 }
