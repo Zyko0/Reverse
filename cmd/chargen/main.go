@@ -79,6 +79,7 @@ func (g *App) Draw(screen *ebiten.Image) {
 			SrcWidth:  1,
 			SrcHeight: 1,
 			R:         g.front,
+			G:         1,
 		},
 	)
 	screen.DrawTrianglesShader(vertices, indices, assets.CharShader, &ebiten.DrawTrianglesShaderOptions{

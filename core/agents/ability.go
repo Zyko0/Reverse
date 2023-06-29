@@ -7,7 +7,7 @@ type Ability byte
 const (
 	AbilityLightsOff Ability = iota
 	AbilityTasing
-	AbilityScouting
+	AbilityScanning
 )
 
 // Properties
@@ -16,6 +16,6 @@ const (
 	TasingCooldown = logic.TPS * 5
 	TasingRadius   = 10
 
-	ScoutingTicks    = logic.TPS * 5
-	ScoutingCoolDown = logic.TPS * 20
+	ScanningTicks    = logic.TPS * 5
+	ScanningCoolDown = logic.TPS * 20
 )

@@ -20,6 +20,7 @@ const (
 type Game struct {
 	ticks       uint64
 	lvl         int
+	reached     bool
 	status      GameStatus
 	lastKnownAt geom.Vec3
 
@@ -33,6 +34,7 @@ func NewGame(lvl int) *Game {
 	return &Game{
 		ticks:       0,
 		lvl:         lvl,
+		reached:     false,
 		status:      GameStatusDefeat,
 		lastKnownAt: level.StartPlayerPosition,
 
@@ -62,7 +64,7 @@ func (g *Game) Update() {
 		Z: pxz.Y,
 	})
 	// Record last known player position
-	heardSeen := g.Player.HasAbility(agents.AbilityScouting)
+	heardSeen := g.Player.HasAbility(agents.AbilityScanning)
 	canSeePlayer := false
 	if g.Player.GetHeard() { // if noisy
 		g.lastKnownAt = g.Player.GetPosition()
@@ -102,6 +104,11 @@ func (g *Game) Update() {
 		Y: 0,
 		Z: intent.Z,
 	})
+	// If Agent took the goal point
+	if g.Agent.GetPosition().Floor() == level.GoalPosition.Floor() {
+		g.reached = true
+		g.status = GameStatusDefeat
+	}
 
 	g.ticks++
 }
@@ -135,5 +142,5 @@ func (g *Game) TimeRemaining() time.Duration {
 }
 
 func (g *Game) IsOver() bool {
-	return g.ticks > level.LevelsTime[g.lvl] || g.status == GameStatusVictory
+	return g.ticks > level.LevelsTime[g.lvl] || g.reached || g.status == GameStatusVictory
 }

@@ -10,10 +10,9 @@ import (
 )
 
 type Renderer struct {
-	ticks      uint64
-	sheetdrawn bool
-	mapdrawn   bool
-	drawn      bool
+	ticks    uint64
+	mapdrawn bool
+	drawn    bool
 
 	heightmap *ebiten.Image
 	offscreen *ebiten.Image
@@ -32,10 +31,9 @@ type State struct {
 
 func NewRenderer() *Renderer {
 	return &Renderer{
-		ticks:      0,
-		sheetdrawn: false,
-		mapdrawn:   false,
-		drawn:      false,
+		ticks:    0,
+		mapdrawn: false,
+		drawn:    false,
 
 		heightmap: ebiten.NewImage(logic.MapWidth, logic.MapDepth),
 		offscreen: ebiten.NewImage(logic.ScreenWidth, logic.ScreenHeight),
@@ -51,7 +49,6 @@ func (r *Renderer) agentStates(a agents.Agent) (float32, float32, float32, float
 	case agents.StateJumping:
 		// Must have prio over walk / run
 		jump = 1 - float32(a.GetJumpingTicks())/float32(agents.JumpingTicks)
-		//pjump *= 2
 	case agents.StateWalking:
 		walk = 1
 	case agents.StateRunning:
@@ -64,11 +61,8 @@ func (r *Renderer) agentStates(a agents.Agent) (float32, float32, float32, float
 	return idle, walk, run, jump
 }
 
-func (r *Renderer) Update(reload bool) {
+func (r *Renderer) Update() {
 	r.drawn = false
-	if reload {
-		r.mapdrawn = false // TODO: tmp map design
-	}
 	r.ticks++
 }
 
@@ -79,11 +73,6 @@ var (
 
 func (r *Renderer) Draw(screen *ebiten.Image, state *State) {
 	if !r.drawn {
-		// Spritesheet update
-		if !r.sheetdrawn {
-			SheetImage.DrawImage(assets.Sheet0Image, nil)
-			r.sheetdrawn = true
-		}
 		// Map generation
 		if !r.mapdrawn {
 			r.heightmap.WritePixels(state.Map.CompileBytes())
@@ -159,17 +148,17 @@ func (r *Renderer) Draw(screen *ebiten.Image, state *State) {
 			},
 			Images: [4]*ebiten.Image{
 				r.heightmap,
-				SheetImage,
+				assets.Sheet0Image,
 			},
 		})
 		// Render minimap
 		const minimapSize = 256
 		vertices, indices = AppendQuadVerticesIndices(
 			vertices[:0], indices[:0], 0, &QuadOpts{
-				DstX:      logic.ScreenWidth - minimapSize,
+				DstX:      logic.ScreenWidth - minimapSize*1.5,
 				DstY:      0,
-				DstWidth:  minimapSize,
-				DstHeight: minimapSize,
+				DstWidth:  minimapSize * 1.5,
+				DstHeight: minimapSize * 1.5,
 				SrcWidth:  minimapSize,
 				SrcHeight: minimapSize,
 			},
@@ -188,10 +177,10 @@ func (r *Renderer) Draw(screen *ebiten.Image, state *State) {
 		if state.AgentSeen {
 			aseen = 1
 		}
-		if state.Agent.GetHeard() {
+		if state.Agent.GetHeard() || state.Player.HasAbility(agents.AbilityScanning) {
 			asig = 1
+			aseen = 1
 		}
-		aseen = 1 // TODO: debug only
 		r.offscreen.DrawTrianglesShader(vertices, indices, assets.MinimapShader, &ebiten.DrawTrianglesShaderOptions{
 			Images: [4]*ebiten.Image{
 				r.heightmap,
@@ -221,19 +210,14 @@ func (r *Renderer) Draw(screen *ebiten.Image, state *State) {
 				"AgentSeen":   aseen,
 			},
 		})
+		// Render abilities cooldowns
+		r.renderAbilities(state)
 		// Mark frame as drawn for this tick
 		r.drawn = true
 	}
 
-	opts := &ebiten.DrawImageOptions{
-		//Filter: ebiten.FilterLinear,
-	}
+	opts := &ebiten.DrawImageOptions{}
 	//opts.GeoM.Scale(2, 2) // TODO: Resolution parameter
 	//opts.GeoM.Translate(0, logic.ScreenHeight/2-logic.ScreenWidth/2)
 	screen.DrawImage(r.offscreen, opts)
-	screen.DrawImage(SheetImage, nil)
-	//screen.DrawImage(r.heightmap, nil)
-	/*opts = &ebiten.DrawImageOptions{}
-	opts.GeoM.Scale(16, 16)
-	screen.DrawImage(r.heightmap, opts)*/
 }

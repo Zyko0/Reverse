@@ -10,48 +10,78 @@ import (
 	"github.com/Zyko0/Reverse/graphics"
 	"github.com/Zyko0/Reverse/logic"
 	"github.com/Zyko0/Reverse/pkg/xfmt"
+	"github.com/Zyko0/Reverse/ui"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hajimehoshi/ebiten/v2/text"
 )
 
 type Game struct {
-	renderer *graphics.Renderer
+	levelview *ui.LevelView
+	pauseview *ui.PauseView
+
 	game     *core.Game
+	renderer *graphics.Renderer
 }
 
 func New() *Game {
 	return &Game{
-		renderer: graphics.NewRenderer(),
+		levelview: ui.NewLevelView(),
+		pauseview: ui.NewPauseView(),
+
 		game:     core.NewGame(0),
+		renderer: graphics.NewRenderer(),
 	}
 }
-
-var reload bool
 
 func (g *Game) Update() error {
 	// Quit the game // TODO: remove
 	if ebiten.IsKeyPressed(ebiten.KeyEscape) {
 		return errors.New("quit")
 	}
+	// Level view
+	if g.levelview.Active() {
+		if level, started := g.levelview.LevelStarted(); started {
+			g.game = core.NewGame(level)
+			g.levelview.Deactivate()
+		} else {
+			g.levelview.Update()
+			return nil
+		}
+	}
+	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) || g.game.IsOver() && inpututil.IsKeyJustPressed(ebiten.KeyEnter) {
+		g.levelview.Activate()
+		return nil
+	}
 	// Restart level
 	if ebiten.IsKeyPressed(ebiten.KeyBackspace) {
 		g.game = core.NewGame(g.game.GetLevel())
+	}
+	// Pause
+	if g.pauseview.Active {
+		g.pauseview.Update()
+		return nil
+	}
+	if inpututil.IsKeyJustPressed(ebiten.KeyTab) {
+		g.pauseview.Active = true
+		return nil
 	}
 
 	// Update game
 	g.game.Update()
 	// Update renderer
-	g.renderer.Update(reload)
-	// TODO: remove below
-	if reload {
-		reload = false
-	}
+	g.renderer.Update()
 
 	return nil
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
+	// Level view
+	if g.levelview.Active() {
+		g.levelview.Draw(screen)
+		return
+	}
 	// Render game
 	g.renderer.Draw(screen, &graphics.State{
 		Level:      g.game.GetLevel(),
@@ -63,8 +93,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		PlayerSeen: g.game.PlayerSeen(),
 		AgentSeen:  g.game.AgentSeen(),
 	})
-	// UI
 	// Remaining time
+	// TODO: clean below
 	timeTxt := xfmt.Duration(g.game.TimeRemaining())
 	rect := text.BoundString(assets.GameInfoFontFace, timeTxt)
 	text.Draw(screen, timeTxt, assets.GameInfoFontFace,
@@ -79,7 +109,10 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		playerStatusTxt = "SEEN"
 	}
 	if g.game.IsOver() {
-		playerStatusTxt = "GAME OVER"
+		playerStatusTxt = "GAME OVER (VICTORY)"
+		if g.game.Status() == core.GameStatusDefeat {
+			playerStatusTxt = "PLAYER WINS (DEFEAT)"
+		}
 	}
 	if playerStatusTxt != "" {
 		rect := text.BoundString(assets.GameInfoFontFace, playerStatusTxt)
@@ -88,7 +121,12 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			color.White,
 		)
 	}
+	// UI
+	if g.pauseview.Active {
+		g.pauseview.Draw(screen)
+	}
 	// Debug
+	// TODO: remove below
 	ebitenutil.DebugPrint(
 		screen,
 		fmt.Sprintf("TPS: %0.2f - FPS %.02f - PPos (%v) Intent(%v) Hangle %.4f - Block(%d,%d) - Seen %v",
@@ -107,71 +145,8 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 func main() {
-	/*f, err := os.Create("beat.prof")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer f.Close()
-	err = pprof.StartCPUProfile(f)
-	if err != nil {
-		fmt.Println("couldn't profile:", err)
-		return
-	}
-	defer pprof.StopCPUProfile()*/
-
-	//fmt.Println("max", geom.Vec3{X: 255, Y: logic.MapHeight, Z: 255}.AsUHashXZ())
-
-	/*for i := 0; i < 100; i++ {
-		now := time.Now()
-		pos := level.StartAgentPosition
-		pos.Y = 1
-		p, _ := assets.Level0.AStar(pos, level.GoalPosition)
-		fmt.Println("len", len(p), "time", time.Since(now))
-	}*/
-
-	//return
-	// TODO: remove below
-	/*watcher, err := fsnotify.NewWatcher()
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer watcher.Close()*/
-
-	const fname = "./assets/levels/0.rev"
-	/*go func() {
-		for {
-			select {
-			case event, ok := <-watcher.Events:
-				if !ok {
-					return
-				}
-				if event.Has(fsnotify.Write) {
-					b, err := os.ReadFile(fname)
-					if err != nil {
-						log.Println("err read:", err)
-					}
-					err = assets.Level0.Deserialize(b)
-					if err != nil {
-						log.Println("err deserialize:", err)
-					}
-					reload = true
-				}
-			case err, ok := <-watcher.Errors:
-				if !ok {
-					return
-				}
-				log.Println("error:", err)
-			}
-		}
-	}()
-
-	err = watcher.Add(fname)
-	if err != nil {
-		log.Fatal(err)
-	}*/
-
 	ebiten.SetFullscreen(true)
-	ebiten.SetVsyncEnabled(false) // TODO: remove
+	ebiten.SetVsyncEnabled(true)
 	ebiten.SetWindowSize(logic.ScreenWidth, logic.ScreenHeight)
 	ebiten.SetMaxTPS(logic.TPS)
 	ebiten.SetCursorMode(ebiten.CursorModeCaptured)

@@ -104,12 +104,10 @@ func (a0 *Agent0) Update(env *Env) {
 			}
 			env.Map.UpdateProximityCosts(env.LastKnownAt, PlayerVisibilityRadius+5)
 			goal = spot
-			fmt.Println("escaping")
 		// Try reaching goal safely if "feels" like it is
 		case a0.Position.DistanceTo(env.Goal)+TasingRadius+5 < env.LastKnownAt.DistanceTo(env.Goal):
 			env.Map.UpdateProximityCosts(env.LastKnownAt, PlayerVisibilityRadius+5)
 			goal = env.Goal
-			fmt.Println("goal")
 		// Go higher to take information
 		default:
 			spot := level.InfoSpotsByLevel[env.Level][0]
@@ -122,7 +120,6 @@ func (a0 *Agent0) Update(env *Env) {
 			}
 			env.Map.UpdateProximityCosts(env.LastKnownAt, PlayerVisibilityRadius+5)
 			goal = spot
-			fmt.Println("scout")
 		}
 		// Try finding a path
 		path, found := env.Map.AStar(

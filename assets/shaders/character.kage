@@ -48,7 +48,6 @@ func sdChar(p vec2, front float) vec4 {
 	offy += (0.05 - sin(Time*tmovement)*0.05) * movement
 	jumpoffy := Jumping * 0.35
 	p.y += offy
-	//p.y -= 0.05
 
 	// Eyes blinking
 	blink := mod(Time*12, 28)
@@ -114,6 +113,7 @@ var Eyes float
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	uv := texCoord*2 - 1
+	uv.x *= color.g // Flip
 
 	res := sdChar(uv, color.r)
 	if res.w >= 0 {

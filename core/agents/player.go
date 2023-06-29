@@ -10,8 +10,8 @@ type Player struct {
 
 	tasingTicks   uint64
 	tasingCD      uint64
-	scoutingTicks uint64
-	scoutingCD    uint64
+	scanningTicks uint64
+	scanningCD    uint64
 }
 
 func NewPlayer() *Player {
@@ -21,7 +21,7 @@ func NewPlayer() *Player {
 			Position: level.StartPlayerPosition,
 		},
 
-		scoutingCD: ScoutingCoolDown,
+		scanningCD: ScanningCoolDown,
 	}
 }
 
@@ -35,12 +35,12 @@ func (p *Player) Update(env *Env) {
 		p.tasingTicks--
 		p.tasingCD = TasingCooldown
 	}
-	if p.scoutingCD > 0 {
-		p.scoutingCD--
+	if p.scanningCD > 0 {
+		p.scanningCD--
 	}
-	if p.scoutingTicks > 0 {
-		p.scoutingTicks--
-		p.scoutingCD = ScoutingCoolDown
+	if p.scanningTicks > 0 {
+		p.scanningTicks--
+		p.scanningCD = ScanningCoolDown
 	}
 
 	if ebiten.IsKeyPressed(ebiten.KeyW) {
@@ -62,12 +62,12 @@ func (p *Player) Update(env *Env) {
 	if ebiten.IsKeyPressed(ebiten.KeyE) && p.tasingTicks == 0 && p.tasingCD == 0 {
 		p.tasingTicks = TasingTicks
 	}
-	if ebiten.IsKeyPressed(ebiten.KeyQ) && p.scoutingTicks == 0 && p.scoutingCD == 0 {
-		p.scoutingCD = ScoutingTicks
+	if ebiten.IsKeyPressed(ebiten.KeyQ) && p.scanningTicks == 0 && p.scanningCD == 0 {
+		p.scanningTicks = ScanningTicks
 	}
 
 	p.Running = ebiten.IsKeyPressed(ebiten.KeyShift)
-	ms := AgentDefaultMS // TODO: make this better
+	ms := AgentDefaultMS
 	if p.Running {
 		ms = AgentRunMS
 	}
@@ -82,8 +82,8 @@ func (p *Player) HasAbility(ability Ability) bool {
 	switch ability {
 	case AbilityTasing:
 		return p.tasingTicks > 0
-	case AbilityScouting:
-		return p.scoutingTicks > 0
+	case AbilityScanning:
+		return p.scanningTicks > 0
 	default:
 		return false
 	}
@@ -93,8 +93,8 @@ func (p *Player) Cooldown(ability Ability) float64 {
 	switch ability {
 	case AbilityTasing:
 		return float64(p.tasingCD) / float64(TasingCooldown)
-	case AbilityScouting:
-		return float64(p.scoutingCD) / float64(ScoutingCoolDown)
+	case AbilityScanning:
+		return float64(p.scanningCD) / float64(ScanningCoolDown)
 	default:
 		return 0
 	}

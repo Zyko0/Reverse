@@ -3,9 +3,7 @@ package level
 import (
 	"bytes"
 	"encoding/gob"
-	"fmt"
 	"math"
-	"time"
 
 	"github.com/Zyko0/Reverse/logic"
 	"github.com/Zyko0/Reverse/pkg/geom"
@@ -275,7 +273,6 @@ func (hm *HMap) UpdateProximityCosts(pos geom.Vec3, radius float64) {
 	queue := qStore[:1]
 	queue[0] = hash
 
-	now := time.Now()
 	copy(proximityCosts, zeroSlice)
 	copy(costs, nullNodeSlice)
 	costs[hash] = 0
@@ -293,12 +290,7 @@ func (hm *HMap) UpdateProximityCosts(pos geom.Vec3, radius float64) {
 		}
 	}
 	// Update player proximity costs
-	bg := uint16(0)
 	for _, h := range proximities {
 		proximityCosts[h] = r - costs[h]
-		if proximityCosts[h] > bg {
-			bg = proximityCosts[h]
-		}
 	}
-	fmt.Println("donz", len(proximities), "rad", radius, "elapsed", time.Since(now), "big", bg)
 }
