@@ -1,7 +1,6 @@
 package agents
 
 import (
-	"fmt"
 	"math"
 
 	"github.com/Zyko0/Reverse/logic"
@@ -90,7 +89,6 @@ func (a0 *Agent0) Update(env *Env) {
 		case a0.Solved:
 			env.Map.UpdateProximityCosts(env.LastKnownAt, TasingRadius+5)
 			goal = env.Goal
-			fmt.Println("all in")
 		// Try escaping
 		case a0.EscapingTicks > 0:
 			spot := level.HideSpotsByLevel[env.Level][0]
@@ -134,20 +132,6 @@ func (a0 *Agent0) Update(env *Env) {
 	// Follow the path
 	current := a0.Position
 	if a0.CurrentPath != nil {
-		// If have a straight line // TODO: need to take Y into account
-		/*for pi := len(a0.CurrentPath) - 1; pi >= a0.PathIndex; pi-- {
-			next := a0.CurrentPath[pi].Add(v3HalfXZ)
-			if env.Map.CastRay(a0.Position, next, 999) {
-				dist := geom.Vec3{current.X, 0, current.Z}.DistanceTo(
-					geom.Vec3{next.X, 0, next.Z},
-				)
-				ms := math.Min(AgentDefaultMS*runc, dist)
-				a0.Intent = next.Sub(a0.Position)
-				a0.Intent.Y = 0
-				a0.Intent = a0.Intent.Normalize().MulN(ms)
-				return
-			}
-		}*/
 		// Block by block
 		if a0.PathIndex < len(a0.CurrentPath) {
 			x := int(current.X * 10)

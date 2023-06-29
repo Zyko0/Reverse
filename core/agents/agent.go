@@ -60,6 +60,8 @@ func NewAgentByLevel(lvl int) Agent {
 	switch lvl {
 	case 0:
 		return NewAgent0()
+	case 1:
+		return NewAgent0()
 	default:
 		return nil
 	}

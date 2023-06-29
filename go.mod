@@ -4,6 +4,8 @@ go 1.18
 
 require github.com/hajimehoshi/ebiten/v2 v2.5.0-alpha.12.0.20230228174701-7c0fbce0cfd8
 
+require github.com/hajimehoshi/oto/v2 v2.4.0-alpha.12 // indirect
+
 require (
 	github.com/ebitengine/purego v0.4.0-alpha.4 // indirect
 	github.com/go-gl/glfw/v3.3/glfw v0.0.0-20221017161538-93cebf72946b // indirect

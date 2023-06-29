@@ -3,6 +3,7 @@ package core
 import (
 	"math"
 
+	"github.com/Zyko0/Reverse/assets"
 	"github.com/Zyko0/Reverse/core/agents"
 	"github.com/Zyko0/Reverse/logic"
 	"github.com/Zyko0/Reverse/pkg/geom"
@@ -38,7 +39,8 @@ func (g *Game) ResolveCollisions(agent agents.Agent, intent geom.Vec3) {
 		// Make the agent noisy if he reached a big fall speed
 		if agent.GetYVelocity() == FallVelocityTerminal {
 			agent.SetHeard()
-			// TODO: play fall sfx
+			// Play sfx
+			assets.PlayFall()
 		}
 		pos.Y = float64(current.Height) + 0.5
 		agent.SetYVelocity(0)

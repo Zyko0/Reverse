@@ -8,8 +8,8 @@ github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0/go.mod h1:E/TSTwGw
 github.com/hajimehoshi/bitmapfont/v2 v2.2.3 h1:jmq/TMNj352V062Tr5e3hAoipkoxCbY1JWTzor0zNps=
 github.com/hajimehoshi/ebiten/v2 v2.5.0-alpha.12.0.20230228174701-7c0fbce0cfd8 h1:q/TAQWrzfZUzJ6hr3mPbqG12zAy5BUSdRl1eL3aq4mo=
 github.com/hajimehoshi/ebiten/v2 v2.5.0-alpha.12.0.20230228174701-7c0fbce0cfd8/go.mod h1:3ZhZlxrhrdFM+Qu9PMw9yf/o044WfjDy8US2NNYDIBI=
-github.com/hajimehoshi/ebiten/v2 v2.6.0-alpha.4 h1:Qf/3PklRTrIXIX7ySAT5cUpJCEt/D+Adr0DkZ0euVlw=
-github.com/hajimehoshi/ebiten/v2 v2.6.0-alpha.4/go.mod h1:+fFI6Ag5YvbX1ivNQD2TxNhpWFDPuxEoew421TTQAxI=
+github.com/hajimehoshi/oto/v2 v2.4.0-alpha.12 h1:Te24epx3UHrk9SkW3nFTHLy3vK+ZNE3rKFeWM23622Q=
+github.com/hajimehoshi/oto/v2 v2.4.0-alpha.12/go.mod h1:wre+KgbOrKDXpgk6W/JC6KoFqZnVC/VtX5ZFRkJuxO4=
 github.com/jezek/xgb v1.1.0 h1:wnpxJzP1+rkbGclEkmwpVFQWpuE2PUGNUzP8SbfFobk=
 github.com/jezek/xgb v1.1.0/go.mod h1:nrhwO0FX/enq75I7Y7G8iN1ubpSGZEiA3v9e9GyRFlk=
 github.com/yuin/goldmark v1.4.13/go.mod h1:6yULJ656Px+3vBD8DxQVa3kxgyrAnzto9xy5taEt/CY=

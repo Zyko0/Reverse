@@ -1,8 +1,6 @@
 package main
 
 import (
-	"errors"
-	"fmt"
 	"image/color"
 
 	"github.com/Zyko0/Reverse/assets"
@@ -12,7 +10,6 @@ import (
 	"github.com/Zyko0/Reverse/pkg/xfmt"
 	"github.com/Zyko0/Reverse/ui"
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hajimehoshi/ebiten/v2/text"
 )
@@ -36,10 +33,6 @@ func New() *Game {
 }
 
 func (g *Game) Update() error {
-	// Quit the game // TODO: remove
-	if ebiten.IsKeyPressed(ebiten.KeyEscape) {
-		return errors.New("quit")
-	}
 	// Level view
 	if g.levelview.Active() {
 		if level, started := g.levelview.LevelStarted(); started {
@@ -127,7 +120,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	}
 	// Debug
 	// TODO: remove below
-	ebitenutil.DebugPrint(
+	/*ebitenutil.DebugPrint(
 		screen,
 		fmt.Sprintf("TPS: %0.2f - FPS %.02f - PPos (%v) Intent(%v) Hangle %.4f - Block(%d,%d) - Seen %v",
 			ebiten.CurrentTPS(),
@@ -137,7 +130,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			int(g.game.Player.Position.X), int(g.game.Player.Position.Z),
 			g.game.AgentSeen(),
 		),
-	)
+	)*/
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {

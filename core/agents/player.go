@@ -1,6 +1,7 @@
 package agents
 
 import (
+	"github.com/Zyko0/Reverse/assets"
 	"github.com/Zyko0/Reverse/pkg/level"
 	"github.com/hajimehoshi/ebiten/v2"
 )
@@ -64,12 +65,18 @@ func (p *Player) Update(env *Env) {
 	}
 	if ebiten.IsKeyPressed(ebiten.KeyQ) && p.scanningTicks == 0 && p.scanningCD == 0 {
 		p.scanningTicks = ScanningTicks
+		// SFX
+		assets.PlayScan()
 	}
 
 	p.Running = ebiten.IsKeyPressed(ebiten.KeyShift)
 	ms := AgentDefaultMS
 	if p.Running {
 		ms = AgentRunMS
+		// SFX
+		assets.PlayFootsteps()
+	} else {
+		assets.StopFootsteps()
 	}
 	if !p.Intent.Zero() {
 		p.Intent = p.Intent.Normalize()
