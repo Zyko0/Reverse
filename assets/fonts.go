@@ -11,6 +11,8 @@ import (
 var (
 	MapGenFontFace      font.Face
 	MapGenDebugFontFace font.Face
+
+	GameInfoFontFace font.Face
 )
 
 func init() {
@@ -23,5 +25,8 @@ func init() {
 	})
 	MapGenDebugFontFace = truetype.NewFace(tfont, &truetype.Options{
 		Size: 12,
+	})
+	GameInfoFontFace = truetype.NewFace(tfont, &truetype.Options{
+		Size: 32,
 	})
 }

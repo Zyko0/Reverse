@@ -9,8 +9,12 @@ var MapSize vec2
 var GoalPosition vec2
 var PlayerPosition vec2
 var PlayerSignal float
+var PlayerTasing float
+var PlayerSeen float
+var TaseColor vec3
 var AgentPosition vec2
 var AgentSignal float
+var AgentSeen float
 
 func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	clr := vec3(0)
@@ -25,8 +29,9 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	uv = uv * MapSize
 	// Agents
 	const (
-		posr    = 5
+		posr    = 2.5
 		signalr = 50
+		tasingr = 10
 	)
 
 	oclr := vec4(clr, 1)
@@ -39,10 +44,10 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	if d < 0 {
 		oclr.rgb = vec3(1, 0.9, 0)
 	}
-	/*d = length(uv-AgentPosition) - agentr
-	if d < 0 {
+	d = length(uv-AgentPosition) - posr
+	if d*AgentSeen < 0 { // Only showing agent if seen
 		oclr.rgb = vec3(0, 0, 1)
-	}*/
+	}
 	// Signal waves
 	sigr := abs(sin(Time*Pi) * signalr)
 	d = length(uv-PlayerPosition) - sigr
@@ -53,6 +58,13 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	if step(2.5*AgentSignal, abs(d)) == 0 {
 		oclr = oclr/2 + vec4(0, 0, 1, 1)
 	}
+	// Tasing
+	d = length(uv-PlayerPosition) - tasingr
+	if d*PlayerTasing < 0 {
+		oclr += vec4(TaseColor, 1) / 2
+	}
+	// Seen
+	oclr += vec4(vec3(1, 0, 0)*abs(sin(Time*Pi)), 1) * 0.2 * PlayerSeen
 
 	return oclr
 }

@@ -6,11 +6,14 @@ import (
 )
 
 const (
+	PlayerVisibilityRadius = 50
+
 	AgentDefaultMS       = 0.1
 	AgentRunMSMultiplier = 3
 	AgentRunMS           = AgentDefaultMS * AgentRunMSMultiplier
 	JumpingTicks         = logic.TPS / 6
 	HeardForTicks        = logic.TPS * 2
+	CheatVisionTicks     = logic.TPS * 15
 )
 
 var (
@@ -50,9 +53,21 @@ type Agent interface {
 	SetHeard()
 
 	HasAbility(ability Ability) bool
+	Cooldown(ability Ability) float64
+}
+
+func NewAgentByLevel(lvl int) Agent {
+	switch lvl {
+	case 0:
+		return NewAgent0()
+	default:
+		return nil
+	}
 }
 
 type base struct {
+	ticks uint64
+
 	Angle    float64
 	Position geom.Vec3
 	Intent   geom.Vec3
@@ -73,6 +88,7 @@ func (b *base) update() {
 		b.HeardForTicks--
 	}
 	b.Intent.X, b.Intent.Y, b.Intent.Z = 0, 0, 0
+	b.ticks++
 }
 
 func (b *base) GetState() State {

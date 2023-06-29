@@ -8,8 +8,10 @@ import (
 type Player struct {
 	base
 
-	tasingTicks uint64
-	tasingCD    uint64
+	tasingTicks   uint64
+	tasingCD      uint64
+	scoutingTicks uint64
+	scoutingCD    uint64
 }
 
 func NewPlayer() *Player {
@@ -18,6 +20,8 @@ func NewPlayer() *Player {
 			Grounded: true,
 			Position: level.StartPlayerPosition,
 		},
+
+		scoutingCD: ScoutingCoolDown,
 	}
 }
 
@@ -29,9 +33,14 @@ func (p *Player) Update(env *Env) {
 	}
 	if p.tasingTicks > 0 {
 		p.tasingTicks--
-		if p.tasingTicks == 0 {
-			p.tasingCD = TasingCooldown
-		}
+		p.tasingCD = TasingCooldown
+	}
+	if p.scoutingCD > 0 {
+		p.scoutingCD--
+	}
+	if p.scoutingTicks > 0 {
+		p.scoutingTicks--
+		p.scoutingCD = ScoutingCoolDown
 	}
 
 	if ebiten.IsKeyPressed(ebiten.KeyW) {
@@ -53,6 +62,9 @@ func (p *Player) Update(env *Env) {
 	if ebiten.IsKeyPressed(ebiten.KeyE) && p.tasingTicks == 0 && p.tasingCD == 0 {
 		p.tasingTicks = TasingTicks
 	}
+	if ebiten.IsKeyPressed(ebiten.KeyQ) && p.scoutingTicks == 0 && p.scoutingCD == 0 {
+		p.scoutingCD = ScoutingTicks
+	}
 
 	p.Running = ebiten.IsKeyPressed(ebiten.KeyShift)
 	ms := AgentDefaultMS // TODO: make this better
@@ -67,5 +79,23 @@ func (p *Player) Update(env *Env) {
 }
 
 func (p *Player) HasAbility(ability Ability) bool {
-	return ability == AbilityTasing && p.tasingTicks > 0
+	switch ability {
+	case AbilityTasing:
+		return p.tasingTicks > 0
+	case AbilityScouting:
+		return p.scoutingTicks > 0
+	default:
+		return false
+	}
+}
+
+func (p *Player) Cooldown(ability Ability) float64 {
+	switch ability {
+	case AbilityTasing:
+		return float64(p.tasingCD) / float64(TasingCooldown)
+	case AbilityScouting:
+		return float64(p.scoutingCD) / float64(ScoutingCoolDown)
+	default:
+		return 0
+	}
 }

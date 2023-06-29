@@ -352,8 +352,9 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	// Hack: 0 and 2Pi angle glitching
 	ha := HorizontalAngle
 	ha = -noZeroSign(ha)*min(max(abs(ha), 0.001), TwoPi-0.001) + Pi
-	off := AgentPosition.xyz // Offset.xyz // TODO: tmppppppppp
+	off := Offset.xyz
 	aoff := AgentPosition.xyz
+	//off = aoff // TODO: tmppppppppp
 	rot := rotate2D(ha)
 	// Ray origin
 	ro := vec3(uv.x, MapSize.y, uv.y+MapSize.y)

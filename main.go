@@ -4,16 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"image/color"
-	"log"
-	"os"
-	"runtime/pprof"
-	"time"
 
 	"github.com/Zyko0/Reverse/assets"
 	"github.com/Zyko0/Reverse/core"
 	"github.com/Zyko0/Reverse/graphics"
 	"github.com/Zyko0/Reverse/logic"
-	"github.com/Zyko0/Reverse/pkg/level"
 	"github.com/Zyko0/Reverse/pkg/xfmt"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -28,15 +23,20 @@ type Game struct {
 func New() *Game {
 	return &Game{
 		renderer: graphics.NewRenderer(),
-		game:     core.NewGame(),
+		game:     core.NewGame(0),
 	}
 }
 
 var reload bool
 
 func (g *Game) Update() error {
+	// Quit the game // TODO: remove
 	if ebiten.IsKeyPressed(ebiten.KeyEscape) {
 		return errors.New("quit")
+	}
+	// Restart level
+	if ebiten.IsKeyPressed(ebiten.KeyBackspace) {
+		g.game = core.NewGame(g.game.GetLevel())
 	}
 
 	// Update game
@@ -60,24 +60,44 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		Player:     g.game.Player,
 		Agent:      g.game.Agent,
 		GameStatus: g.game.Status(),
+		PlayerSeen: g.game.PlayerSeen(),
+		AgentSeen:  g.game.AgentSeen(),
 	})
 	// UI
 	// Remaining time
 	timeTxt := xfmt.Duration(g.game.TimeRemaining())
-	rect := text.BoundString(assets.MapGenFontFace, timeTxt)
-	text.Draw(screen, timeTxt, assets.MapGenFontFace,
+	rect := text.BoundString(assets.GameInfoFontFace, timeTxt)
+	text.Draw(screen, timeTxt, assets.GameInfoFontFace,
 		logic.ScreenWidth/2-rect.Dx()/2, 36,
 		color.White,
 	)
+	playerStatusTxt := ""
+	if g.game.Player.GetHeard() {
+		playerStatusTxt = "HEARD"
+	}
+	if g.game.PlayerSeen() {
+		playerStatusTxt = "SEEN"
+	}
+	if g.game.IsOver() {
+		playerStatusTxt = "GAME OVER"
+	}
+	if playerStatusTxt != "" {
+		rect := text.BoundString(assets.GameInfoFontFace, playerStatusTxt)
+		text.Draw(screen, playerStatusTxt, assets.GameInfoFontFace,
+			logic.ScreenWidth/2-rect.Dx()/2, 72,
+			color.White,
+		)
+	}
 	// Debug
 	ebitenutil.DebugPrint(
 		screen,
-		fmt.Sprintf("TPS: %0.2f - FPS %.02f - PPos (%v) Intent(%v) Hangle %.4f - Block(%d,%d)",
+		fmt.Sprintf("TPS: %0.2f - FPS %.02f - PPos (%v) Intent(%v) Hangle %.4f - Block(%d,%d) - Seen %v",
 			ebiten.CurrentTPS(),
 			ebiten.CurrentFPS(),
 			g.game.Player.Position, g.game.Player.Intent,
 			g.game.Camera.HAngle,
 			int(g.game.Player.Position.X), int(g.game.Player.Position.Z),
+			g.game.AgentSeen(),
 		),
 	)
 }
@@ -87,7 +107,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 func main() {
-	f, err := os.Create("beat.prof")
+	/*f, err := os.Create("beat.prof")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -97,17 +117,18 @@ func main() {
 		fmt.Println("couldn't profile:", err)
 		return
 	}
-	defer pprof.StopCPUProfile()
+	defer pprof.StopCPUProfile()*/
 
 	//fmt.Println("max", geom.Vec3{X: 255, Y: logic.MapHeight, Z: 255}.AsUHashXZ())
 
-	for i := 0; i < 100; i++ {
+	/*for i := 0; i < 100; i++ {
 		now := time.Now()
 		pos := level.StartAgentPosition
 		pos.Y = 1
-		p, _ := assets.Level0.BFS(pos, level.GoalPosition, 1, false)
+		p, _ := assets.Level0.AStar(pos, level.GoalPosition)
 		fmt.Println("len", len(p), "time", time.Since(now))
-	}
+	}*/
+
 	//return
 	// TODO: remove below
 	/*watcher, err := fsnotify.NewWatcher()

@@ -26,6 +26,8 @@ type State struct {
 	Player     *agents.Player
 	Agent      agents.Agent
 	GameStatus core.GameStatus
+	PlayerSeen bool
+	AgentSeen  bool
 }
 
 func NewRenderer() *Renderer {
@@ -173,14 +175,23 @@ func (r *Renderer) Draw(screen *ebiten.Image, state *State) {
 			},
 		)
 		// Agent properties
+		pseen := float32(0)
 		psig := float32(0)
+		aseen := float32(0)
 		asig := float32(0)
+		if state.PlayerSeen {
+			pseen = 1
+		}
 		if state.Player.GetHeard() {
 			psig = 1
+		}
+		if state.AgentSeen {
+			aseen = 1
 		}
 		if state.Agent.GetHeard() {
 			asig = 1
 		}
+		aseen = 1 // TODO: debug only
 		r.offscreen.DrawTrianglesShader(vertices, indices, assets.MinimapShader, &ebiten.DrawTrianglesShaderOptions{
 			Images: [4]*ebiten.Image{
 				r.heightmap,
@@ -199,11 +210,15 @@ func (r *Renderer) Draw(screen *ebiten.Image, state *State) {
 					float32(state.Player.Position.Z),
 				},
 				"PlayerSignal": float32(psig),
+				"PlayerTasing": ptasing,
+				"PlayerSeen":   pseen,
+				"TaseColor":    tasingClr,
 				"AgentPosition": []float32{
 					float32(agentPosition.X),
 					float32(agentPosition.Z),
 				},
 				"AgentSignal": float32(asig),
+				"AgentSeen":   aseen,
 			},
 		})
 		// Mark frame as drawn for this tick

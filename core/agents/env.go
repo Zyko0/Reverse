@@ -6,8 +6,12 @@ import (
 )
 
 type Env struct {
-	Map           *level.HMap
-	Goal          geom.Vec3
-	LastHeard     geom.Vec3
-	TimeRemaining uint64
+	Level             int
+	Map               *level.HMap
+	Goal              geom.Vec3
+	LastKnownAt       geom.Vec3
+	LastKnownAtUpdate bool
+	TimeRemaining     uint64
+	Seen              bool
+	CanSeePlayer      bool
 }

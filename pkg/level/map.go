@@ -3,7 +3,9 @@ package level
 import (
 	"bytes"
 	"encoding/gob"
+	"fmt"
 	"math"
+	"time"
 
 	"github.com/Zyko0/Reverse/logic"
 	"github.com/Zyko0/Reverse/pkg/geom"
@@ -188,10 +190,13 @@ func (hm *HMap) CastRay(src, dst geom.Vec3, max float64) bool {
 }
 
 var (
-	qStore        [1024]uint16
-	nullNodeValue = uint16(65535)
-	nullNodeSlice = make([]uint16, 65536)
-	from          = make([]uint16, 65536)
+	qStore         [1024]uint16
+	nullNodeValue  = uint16(65535)
+	nullNodeSlice  = make([]uint16, 65536)
+	zeroSlice      = make([]uint16, 65536)
+	from           = make([]uint16, 65536)
+	costs          = make([]uint16, 65536)
+	proximityCosts = make([]uint16, 65536)
 )
 
 func init() {
@@ -200,13 +205,21 @@ func init() {
 	}
 }
 
-func (hm *HMap) BFS(start, goal geom.Vec3, agility int, allowRun bool) ([]geom.Vec3, bool) {
+func (hm *HMap) cost(current, next uint16) uint16 {
+	if (current&0xFF00)^(next&0xFF00) > 0 && (current&0x00FF)^(next&0x00FF) > 0 {
+		return 14 // sqrt2 for diagonal
+	}
+	return 10
+}
+
+func (hm *HMap) AStar(start, goal geom.Vec3) ([]geom.Vec3, bool) {
 	startHash, goalHash := start.AsUHashXZ(), goal.AsUHashXZ()
 	queue := qStore[:1]
 	queue[0] = startHash
 
 	copy(from, nullNodeSlice)
-
+	copy(costs, nullNodeSlice)
+	costs[startHash] = proximityCosts[startHash]
 	found := false
 	for len(queue) > 0 {
 		current := queue[0]
@@ -217,9 +230,18 @@ func (hm *HMap) BFS(start, goal geom.Vec3, agility int, allowRun bool) ([]geom.V
 			break
 		}
 		for _, next := range hm.Neighbours1[current] {
-			if c := from[next]; c == nullNodeValue {
-				queue = append(queue, next)
+			nc := hm.cost(current, next)
+			// If jump involved make the cost higher
+			h0 := hm.HeightMap[current>>8][current&255].Height
+			h1 := hm.HeightMap[next>>8][next&255].Height
+			if h1 > h0 {
+				nc *= 10
+			}
+			nc += costs[current]
+			if c := costs[next]; nc < c && proximityCosts[next] <= proximityCosts[current] {
+				costs[next] = nc
 				from[next] = current
+				queue = append(queue, next)
 			}
 		}
 	}
@@ -228,7 +250,7 @@ func (hm *HMap) BFS(start, goal geom.Vec3, agility int, allowRun bool) ([]geom.V
 	}
 
 	current := goalHash
-	path := make([]geom.Vec3, 0, 1024)
+	path := make([]geom.Vec3, 0, 256)
 	for current != startHash {
 		v := geom.Vec3{}.FromUHashXZ(current)
 		v.Y = float64(hm.HeightMap[int(v.Z)][int(v.X)].Height)
@@ -241,4 +263,42 @@ func (hm *HMap) BFS(start, goal geom.Vec3, agility int, allowRun bool) ([]geom.V
 	}
 
 	return path, true
+}
+
+var (
+	proximities = make([]uint16, 512)
+)
+
+func (hm *HMap) UpdateProximityCosts(pos geom.Vec3, radius float64) {
+	r := uint16(radius * 10)
+	hash := pos.AsUHashXZ()
+	queue := qStore[:1]
+	queue[0] = hash
+
+	now := time.Now()
+	copy(proximityCosts, zeroSlice)
+	copy(costs, nullNodeSlice)
+	costs[hash] = 0
+	proximities = proximities[:0]
+	for len(queue) > 0 {
+		current := queue[0]
+		proximities = append(proximities, current)
+		queue = queue[1:]
+		for _, next := range hm.Neighbours1[current] {
+			nc := costs[current] + 10 //hm.cost(current, next)
+			if nc < r && nc < costs[next] {
+				costs[next] = nc
+				queue = append(queue, next)
+			}
+		}
+	}
+	// Update player proximity costs
+	bg := uint16(0)
+	for _, h := range proximities {
+		proximityCosts[h] = r - costs[h]
+		if proximityCosts[h] > bg {
+			bg = proximityCosts[h]
+		}
+	}
+	fmt.Println("donz", len(proximities), "rad", radius, "elapsed", time.Since(now), "big", bg)
 }

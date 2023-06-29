@@ -18,10 +18,10 @@ const (
 )
 
 type Game struct {
-	ticks     uint64
-	lvl       int
-	status    GameStatus
-	lastHeard geom.Vec3
+	ticks       uint64
+	lvl         int
+	status      GameStatus
+	lastKnownAt geom.Vec3
 
 	Level  *level.HMap
 	Player *agents.Player
@@ -29,18 +29,27 @@ type Game struct {
 	Camera *Camera
 }
 
-func NewGame() *Game {
+func NewGame(lvl int) *Game {
 	return &Game{
-		lastHeard: level.StartPlayerPosition,
+		ticks:       0,
+		lvl:         lvl,
+		status:      GameStatusDefeat,
+		lastKnownAt: level.StartPlayerPosition,
 
 		Level:  assets.Level0,
 		Player: agents.NewPlayer(),
-		Agent:  agents.NewAgent0(),
+		Agent:  agents.NewAgentByLevel(lvl), // TODO: change depending on the level
 		Camera: newCamera(),
 	}
 }
 
 func (g *Game) Update() {
+	// Camera
+	g.Camera.Update()
+	// Gameover
+	if g.IsOver() {
+		return
+	}
 	// Player
 	g.Player.Update(nil)
 	pxz := geom.Vec2{
@@ -52,9 +61,18 @@ func (g *Game) Update() {
 		Y: 0,
 		Z: pxz.Y,
 	})
-	// Record last heard if player is noisy
-	if g.Player.GetHeard() {
-		g.lastHeard = g.Player.GetPosition()
+	// Record last known player position
+	heardSeen := g.Player.HasAbility(agents.AbilityScouting)
+	canSeePlayer := false
+	if g.Player.GetHeard() { // if noisy
+		g.lastKnownAt = g.Player.GetPosition()
+		heardSeen = true
+	}
+	// Allow player to be seen first 15seconds to ease it for AI
+	if g.PlayerSeen() || g.ticks < agents.CheatVisionTicks { // if seen
+		g.lastKnownAt = g.Player.GetPosition()
+		heardSeen = true
+		canSeePlayer = true
 	}
 	// Check if tasing and if it hits
 	if g.Player.HasAbility(agents.AbilityTasing) {
@@ -68,10 +86,14 @@ func (g *Game) Update() {
 
 	// Agent
 	env := &agents.Env{
-		Map:           g.Level,
-		Goal:          level.GoalPosition,
-		LastHeard:     g.lastHeard,
-		TimeRemaining: uint64(g.TimeRemaining()),
+		Level:             g.lvl,
+		Map:               g.Level,
+		Goal:              level.GoalPosition,
+		LastKnownAt:       g.lastKnownAt,
+		LastKnownAtUpdate: heardSeen,
+		TimeRemaining:     uint64(g.TimeRemaining()),
+		Seen:              g.AgentSeen(),
+		CanSeePlayer:      canSeePlayer,
 	}
 	g.Agent.Update(env)
 	intent := g.Agent.GetIntent()
@@ -80,14 +102,24 @@ func (g *Game) Update() {
 		Y: 0,
 		Z: intent.Z,
 	})
-	// Camera
-	g.Camera.Update()
 
 	g.ticks++
 }
 
 func (g *Game) GetLevel() int {
 	return g.lvl
+}
+
+func (g *Game) PlayerSeen() bool {
+	a := g.Agent.GetPosition()
+	p := g.Player.GetPosition()
+	dist := a.DistanceTo(p)
+
+	return g.Level.CastRay(a, p, dist)
+}
+
+func (g *Game) AgentSeen() bool {
+	return g.PlayerSeen() && g.Player.GetPosition().DistanceTo(g.Agent.GetPosition()) <= agents.PlayerVisibilityRadius
 }
 
 func (g *Game) Status() GameStatus {
