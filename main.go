@@ -1,15 +1,18 @@
 package main
 
 import (
+	"fmt"
 	"image/color"
 
 	"github.com/Zyko0/Reverse/assets"
 	"github.com/Zyko0/Reverse/core"
 	"github.com/Zyko0/Reverse/graphics"
 	"github.com/Zyko0/Reverse/logic"
+	"github.com/Zyko0/Reverse/pkg/utils"
 	"github.com/Zyko0/Reverse/pkg/xfmt"
 	"github.com/Zyko0/Reverse/ui"
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hajimehoshi/ebiten/v2/text"
 )
@@ -33,6 +36,10 @@ func New() *Game {
 }
 
 func (g *Game) Update() error {
+	// Skip update if cursor is not captured
+	if !utils.EnsureCursorCaptured() {
+		return nil
+	}
 	// Level view
 	if g.levelview.Active() {
 		if level, started := g.levelview.LevelStarted(); started {
@@ -42,10 +49,6 @@ func (g *Game) Update() error {
 			g.levelview.Update()
 			return nil
 		}
-	}
-	// Set cursor mode when focused
-	if ebiten.CursorMode() != ebiten.CursorModeCaptured {
-		ebiten.SetCursorMode(ebiten.CursorModeCaptured)
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) || g.game.IsOver() && inpututil.IsKeyJustPressed(ebiten.KeyEnter) {
 		g.levelview.Activate()
@@ -124,7 +127,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	}
 	// Debug
 	// TODO: remove below
-	/*ebitenutil.DebugPrint(
+	ebitenutil.DebugPrint(
 		screen,
 		fmt.Sprintf("TPS: %0.2f - FPS %.02f - PPos (%v) Intent(%v) Hangle %.4f - Block(%d,%d) - Seen %v",
 			ebiten.CurrentTPS(),
@@ -134,7 +137,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			int(g.game.Player.Position.X), int(g.game.Player.Position.Z),
 			g.game.AgentSeen(),
 		),
-	)*/
+	)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
@@ -143,9 +146,10 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 
 func main() {
 	ebiten.SetFullscreen(true)
-	ebiten.SetVsyncEnabled(true)
+	ebiten.SetVsyncEnabled(false)
 	ebiten.SetWindowSize(logic.ScreenWidth, logic.ScreenHeight)
 	ebiten.SetMaxTPS(logic.TPS)
+	utils.EnsureCursorCaptured()
 	// (broken) go get github.com/hajimehoshi/ebiten/v2@1c09ec5e44727a0c38b605552d93e4d470a128ab
 	// (stable) v2.5.0-alpha.12.0.20230228174701-7c0fbce0cfd8
 	if err := ebiten.RunGameWithOptions(New(), &ebiten.RunGameOptions{

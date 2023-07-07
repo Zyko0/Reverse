@@ -54,7 +54,7 @@ func (c *Camera) Update() {
 		if delta := x - c.lastCursorX; delta != 0 {
 			c.lastCursorX = x
 			c.HAngle = math.Mod(
-				c.HAngle-float64(delta)*camRotateSens,
+				c.HAngle+float64(delta)*camRotateSens,
 				2*math.Pi,
 			)
 		}

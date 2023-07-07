@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"fmt"
 	"image/color"
 	"strconv"
 
@@ -68,7 +69,6 @@ func (lv *LevelView) Update() {
 	cx, cy := ebiten.CursorPosition()
 	dx, dy := cx-lv.lx, cy-lv.ly
 	lv.mx, lv.my = lv.mx+dx, lv.my+dy
-	lv.lx, lv.ly = cx, cy
 	if lv.mx < 0 {
 		lv.mx = 0
 	}
@@ -81,6 +81,9 @@ func (lv *LevelView) Update() {
 	if lv.my > logic.ScreenHeight {
 		lv.my = logic.ScreenHeight
 	}
+
+	lv.lx, lv.ly = cx, cy
+	fmt.Println("coords", cx, cy)
 
 	lv.ticks++
 }
